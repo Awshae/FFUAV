@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - AeroGuard</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <style>
+        body { margin: 0; padding: 20px; font-family: 'Segoe UI', sans-serif; background: #f4f6f8; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        h2 { margin: 0; color: #333; }
+        
+        /* Dashboard Grid: 60% Table, 40% Map */
+        .dashboard-container { display: flex; gap: 20px; flex: 1; height: 100%; overflow: hidden; }
+        
+        .panel { background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); overflow: hidden; display: flex; flex-direction: column; }
+        .table-panel { flex: 3; padding: 20px; overflow-y: auto; }
+        .map-panel { flex: 2; height: 100%; position: relative; }
+        
+        /* Table Styles */
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th { text-align: left; padding: 12px; border-bottom: 2px solid #eee; color: #666; font-weight: 600; }
+        td { padding: 12px; border-bottom: 1px solid #eee; color: #333; }
+        tr:hover { background: #f9f9f9; cursor: pointer; }
+        
+        .toolbar { margin-bottom: 15px; display: flex; gap: 10px; }
+        button { padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600; }
+        .btn-refresh { background: #00bcd4; color: white; }
+        .btn-csv { background: #fff; border: 1px solid #00bcd4; color: #00bcd4; }
+        .btn-clear { background: #ff4757; color: white; margin-left: auto; }
+
+        #map-preview { height: 100%; width: 100%; }
+        .status-badge { padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+        .status-PENDING { background: #fff3cd; color: #856404; }
+        .status-IN_PROGRESS { background: #cce5ff; color: #004085; }
+        .status-COMPLETED { background: #d4edda; color: #155724; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2>Admin Dashboard</h2>
+        <span style="color: #666; font-size: 14px;">Manage saved coordinates</span>
+    </div>
+
+    <div class="dashboard-container">
+        <div class="panel table-panel">
+            <div class="toolbar">
+                <button class="btn-refresh" onclick="location.reload()">Refresh</button>
+                <button class="btn-csv" onclick="exportCSV()">Export CSV</button>
+                <button class="btn-clear" onclick="clearHistory()">Clear All</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th>Label</th>
+                        <th>Lat</th>
+                        <th>Lng</th>
+                        <th>Phone</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody id="mission-table">
+                    <tr><td colspan="6">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="panel map-panel">
+            <div id="map-preview"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, query, orderBy, onSnapshot, deleteDoc, getDocs } 
+        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyD3j2PpWAjlOQo-8x22EIECrAvbYfwtvng",
+            authDomain: "autonomous-ff-uav.firebaseapp.com",
+            projectId: "autonomous-ff-uav",
+            storageBucket: "autonomous-ff-uav.firebasestorage.app",
+            messagingSenderId: "701161445134",
+            appId: "1:701161445134:web:2179fffa8747061723695f"
+          };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        let allMissions = [];
+
+        // Map Setup
+        const map = L.map('map-preview').setView([12.9141, 74.8560], 10);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        let markers = [];
+
+        // Real-time listener
+        const q = query(collection(db, "missions"), orderBy("timestamp", "desc"));
+        
+        onSnapshot(q, (snapshot) => {
+            const tableBody = document.getElementById('mission-table');
+            tableBody.innerHTML = "";
+            
+            // Clear old markers
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+            allMissions = [];
+
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                allMissions.push(data);
+                const date = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString() : "N/A";
+
+                // Add Row
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><span class="status-badge status-${data.status}">${data.status}</span></td>
+                    <td>${data.label || 'Guest'}</td>
+                    <td>${data.lat.toFixed(5)}</td>
+                    <td>${data.lng.toFixed(5)}</td>
+                    <td>${data.phone}</td>
+                    <td>${date}</td>
+                `;
+                
+                // Row Click Event to pan map
+                row.onclick = () => {
+                    map.setView([data.lat, data.lng], 15);
+                };
+                tableBody.appendChild(row);
+
+                // Add Marker to Map
+                const marker = L.marker([data.lat, data.lng])
+                    .bindPopup(`<b>${data.label}</b><br>Phone: ${data.phone}`)
+                    .addTo(map);
+                markers.push(marker);
+            });
+        });
+
+        // Export Function
+        window.exportCSV = function() {
+            let csvContent = "data:text/csv;charset=utf-8,Status,Label,Lat,Lng,Phone,Time\n";
+            allMissions.forEach(m => {
+                const time = m.timestamp ? new Date(m.timestamp.toDate()).toISOString() : "";
+                csvContent += `${m.status},${m.label},${m.lat},${m.lng},${m.phone},${time}\n`;
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "missions_export.csv");
+            document.body.appendChild(link);
+            link.click();
+        };
+
+        // Clear Function (Be careful!)
+        window.clearHistory = async function() {
+            if(confirm("Are you sure you want to delete ALL mission history?")) {
+                const q = query(collection(db, "missions"));
+                const snapshot = await getDocs(q);
+                snapshot.forEach((doc) => {
+                    deleteDoc(doc.ref);
+                });
+            }
+        };
+
+    </script>
+</body>
+</html>
