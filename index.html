@@ -3,150 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AeroGuard Mission Control</title>
+    <title>AeroGuard - Fire Dispatch</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; }
-        #sidebar { width: 350px; background: #f4f4f9; padding: 20px; box-shadow: 2px 0 5px rgba(0,0,0,0.1); overflow-y: auto; }
-        #map { flex-grow: 1; height: 100%; }
-        h2 { margin-top: 0; color: #333; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: 600; }
-        input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;}
-        button { width: 100%; padding: 10px; background: #ff4757; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; }
-        button:hover { background: #e84118; }
-        button:disabled { background: #ccc; }
-        #logs { margin-top: 20px; border-top: 2px solid #ddd; padding-top: 10px; }
-        .log-entry { background: white; padding: 10px; margin-bottom: 10px; border-radius: 4px; border-left: 4px solid #ff4757; font-size: 12px; }
-        .status-PENDING { border-color: orange; }
-        .status-IN_PROGRESS { border-color: blue; }
-        .status-COMPLETED { border-color: green; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
+        #map { height: 100vh; width: 100%; z-index: 1; }
+        
+        /* Floating Card Style (Matches Screenshot 1) */
+        .mission-card {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 600px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .header-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 5px; }
+        .coords-display { font-family: monospace; color: #555; background: #f8f9fa; padding: 5px 10px; border-radius: 4px; font-size: 14px; }
+        
+        .action-row { display: flex; gap: 10px; margin-top: 5px; }
+        input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; outline: none; transition: 0.2s; }
+        input:focus { border-color: #007bff; }
+
+        button { padding: 10px 15px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .btn-primary { background: #007bff; color: white; flex: 1; }
+        .btn-primary:hover { background: #0056b3; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-secondary:hover { background: #545b62; }
+        .btn-deploy { background: #dc3545; color: white; flex: 1; } /* Red for Deploy */
+        .btn-deploy:hover { background: #c82333; }
+        .btn-deploy:disabled { background: #ccc; cursor: not-allowed; }
+
+        .status-msg { text-align: center; font-size: 13px; color: green; margin-top: 5px; height: 15px; }
     </style>
 </head>
 <body>
 
-<div id="sidebar">
-    <h2>🔥 Fire Dispatch</h2>
-    <p>Pin location on map to deploy.</p>
-    
-    <div class="form-group">
-        <label>Operator Email *</label>
-        <input type="email" id="email" placeholder="name@agency.com" required>
+    <div class="mission-card">
+        <div class="header-row">
+            <strong> Fire Dispatch</strong>
+            <span class="coords-display" id="coords-text">Lat: -, Lng: -</span>
+        </div>
+
+        <div class="action-row">
+            <button class="btn-primary" onclick="useMyLocation()"> Use My Location</button>
+            <button class="btn-secondary" onclick="copyCoords()"> Copy</button>
+        </div>
+
+        <div class="action-row">
+            <input type="tel" id="phone" placeholder="Phone Number (Required)" required>
+            <input type="text" id="label" placeholder="Label (e.g., Guest-point)">
+        </div>
+
+        <div class="action-row">
+            <button id="deployBtn" class="btn-deploy" onclick="sendMission()" disabled> TRANSMIT COORDINATES</button>
+        </div>
+        <div class="status-msg" id="status-msg"></div>
     </div>
-    <div class="form-group">
-        <label>Phone Number *</label>
-        <input type="tel" id="phone" placeholder="+1 555 000 0000" required>
-    </div>
-    <div class="form-group">
-        <label>Selected Coordinates</label>
-        <input type="text" id="coords" readonly placeholder="Click on map...">
-    </div>
-    
-    <button id="deployBtn" onclick="sendMission()" disabled>🚀 DEPLOY DRONE</button>
 
-    <div id="logs">
-        <h3>Mission History</h3>
-        <div id="log-list">Loading logs...</div>
-    </div>
-</div>
+    <div id="map"></div>
 
-<div id="map"></div>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } 
+        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } 
-    from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        // --- PASTE YOUR FIREBASE CONFIG HERE ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyD3j2PpWAjlOQo-8x22EIECrAvbYfwtvng",
+            authDomain: "autonomous-ff-uav.firebaseapp.com",
+            projectId: "autonomous-ff-uav",
+            storageBucket: "autonomous-ff-uav.firebasestorage.app",
+            messagingSenderId: "701161445134",
+            appId: "1:701161445134:web:2179fffa8747061723695f"
+          };
 
-  // FIREBASE CONFIG
-  const firebaseConfig = {
-    apiKey: "AIzaSyD3j2PpWAjlOQo-8x22EIECrAvbYfwtvng",
-    authDomain: "autonomous-ff-uav.firebaseapp.com",
-    projectId: "autonomous-ff-uav",
-    storageBucket: "autonomous-ff-uav.firebasestorage.app",
-    messagingSenderId: "701161445134",
-    appId: "1:701161445134:web:2179fffa8747061723695f"
-  };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  let selectedLat = null;
-  let selectedLng = null;
+        // Map Setup
+        const map = L.map('map').setView([12.9141, 74.8560], 13); // Default: Mangalore
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
 
-  // Initialize Map
-  const map = L.map('map').setView([12.9716, 77.5946], 13); // Default: Bangalore
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-  }).addTo(map);
+        let marker;
+        let selectedLat = null;
+        let selectedLng = null;
 
-  let marker;
+        // Click to Pin
+        map.on('click', function(e) {
+            updatePosition(e.latlng.lat, e.latlng.lng);
+        });
 
-  map.on('click', function(e) {
-      selectedLat = e.latlng.lat;
-      selectedLng = e.latlng.lng;
-      
-      document.getElementById('coords').value = `${selectedLat.toFixed(5)}, ${selectedLng.toFixed(5)}`;
-      document.getElementById('deployBtn').disabled = false;
+        // Expose functions to window for buttons
+        window.updatePosition = function(lat, lng) {
+            selectedLat = lat;
+            selectedLng = lng;
+            
+            if (marker) map.removeLayer(marker);
+            marker = L.marker([lat, lng]).addTo(map).bindPopup("Target Location").openPopup();
+            
+            document.getElementById('coords-text').innerText = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+            document.getElementById('deployBtn').disabled = false;
+        };
 
-      if (marker) map.removeLayer(marker);
-      marker = L.marker([selectedLat, selectedLng]).addTo(map)
-          .bindPopup("Target Location").openPopup();
-  });
+        window.useMyLocation = function() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    map.setView([lat, lng], 15);
+                    updatePosition(lat, lng);
+                });
+            } else {
+                alert("Geolocation is not supported by this browser.");
+            }
+        };
 
-  // Send Mission Function (exposed to window)
-  window.sendMission = async function() {
-      const email = document.getElementById('email').value;
-      const phone = document.getElementById('phone').value;
+        window.copyCoords = function() {
+            if(selectedLat) {
+                navigator.clipboard.writeText(`${selectedLat}, ${selectedLng}`);
+                alert("Coordinates copied!");
+            }
+        };
 
-      if(!email || !phone || !selectedLat) {
-          alert("Please fill in all fields and select a location.");
-          return;
-      }
+        window.sendMission = async function() {
+            const phone = document.getElementById('phone').value;
+            const label = document.getElementById('label').value || "Guest-point";
+            
+            if (!phone) { alert("Phone number is required."); return; }
+            if (!selectedLat) { alert("Please select a location."); return; }
 
-      const btn = document.getElementById('deployBtn');
-      btn.innerText = "Sending...";
-      btn.disabled = true;
+            const btn = document.getElementById('deployBtn');
+            btn.innerText = "Sending...";
+            btn.disabled = true;
 
-      try {
-          await addDoc(collection(db, "missions"), {
-              lat: selectedLat,
-              lng: selectedLng,
-              alt: 15.0, // Default altitude
-              email: email,
-              phone: phone,
-              status: "PENDING", // Drone watches for this
-              timestamp: serverTimestamp()
-          });
-          alert("Mission Sent to Cloud! ☁️");
-          btn.innerText = "🚀 DEPLOY DRONE";
-          // Optional: Clear form
-      } catch (e) {
-          console.error("Error adding document: ", e);
-          alert("Error sending mission.");
-          btn.disabled = false;
-      }
-  };
-
-  // Real-time Logs Listener
-  const q = query(collection(db, "missions"), orderBy("timestamp", "desc"));
-  onSnapshot(q, (snapshot) => {
-      const list = document.getElementById('log-list');
-      list.innerHTML = "";
-      snapshot.forEach((doc) => {
-          const data = doc.data();
-          const date = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString() : "Just now";
-          const item = document.createElement('div');
-          item.className = `log-entry status-${data.status}`;
-          item.innerHTML = `
-              <strong>${date}</strong><br>
-              Status: <b>${data.status}</b><br>
-              Loc: ${data.lat.toFixed(4)}, ${data.lng.toFixed(4)}<br>
-              User: ${data.email}
-          `;
-          list.appendChild(item);
-      });
-  });
-
-</script>
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+            try {
+                await addDoc(collection(db, "missions"), {
+                    lat: selectedLat,
+                    lng: selectedLng,
+                    alt: 15.0,
+                    phone: phone,
+                    label: label,
+                    status: "PENDING",
+                    timestamp: serverTimestamp()
+                });
+                document.getElementById('status-msg').innerText = "Coordinates transmitted to UAV!";
+                btn.innerText = " TRANSMIT COORDINATES";
+                setTimeout(() => { 
+                    btn.disabled = false; 
+                    document.getElementById('status-msg').innerText = "";
+                }, 3000);
+            } catch (e) {
+                console.error("Error: ", e);
+                alert("Transmission failed.");
+                btn.disabled = false;
+            }
+        };
+    </script>
 </body>
 </html>
