@@ -3,180 +3,537 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FFUAV - Dispatch</title>
+    <meta name="description" content="FFUAV Emergency Drone Dispatch System - Rapid aerial response for critical situations">
+    <meta name="theme-color" content="#1f2937">
+    <title>FFUAV - Emergency Drone Dispatch System</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+    
     <style>
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; background: #f0f2f5; }
-        #map { height: 100vh; width: 100%; z-index: 1; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         
-        /* Top Status Bar */
+        :root {
+            --primary: #1f2937;
+            --secondary: #dc2626;
+            --accent: #0891b2;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --dark: #111827;
+            --light: #f3f4f6;
+            --border: #e5e7eb;
+            --text: #374151;
+        }
+
+        html, body { height: 100%; overflow: hidden; }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+            background: linear-gradient(135deg, var(--dark) 0%, var(--primary) 100%);
+            color: var(--text);
+        }
+
+        #map { height: 100vh; width: 100%; z-index: 1; }
+
+        /* ==================== TOP STATUS BAR ==================== */
         #system-status {
             position: absolute;
             top: 0; left: 0; right: 0;
-            padding: 10px;
+            padding: 12px 20px;
             text-align: center;
-            font-weight: bold;
-            font-size: 14px;
+            font-weight: 700;
+            font-size: 13px;
             color: white;
             z-index: 2000;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 1.2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s ease;
         }
-        .status-ready { background: #2c3e50; } /* Professional Blue */
-        .status-busy { background: #c0392b; }  /* Alert Red */
 
-        /* Info Button */
+        .status-ready { 
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+        }
+
+        .status-busy { 
+            background: linear-gradient(90deg, var(--secondary), #991b1b);
+            animation: pulse-danger 2s infinite;
+        }
+
+        @keyframes pulse-danger {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        .status-icon {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: white;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* ==================== FLOATING CARDS ==================== */
         .info-btn {
             position: absolute;
-            top: 50px;
+            top: 60px;
             right: 20px;
-            background: white;
-            width: 36px;
-            height: 36px;
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
-            border: 2px solid #2c3e50;
-            color: #2c3e50;
+            background: white;
+            border: 2px solid var(--accent);
+            color: var(--accent);
             font-weight: bold;
-            font-family: serif; /* For the 'i' look */
-            font-style: italic;
-            font-size: 18px;
+            font-size: 20px;
             cursor: pointer;
             z-index: 2000;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
         }
-        .info-btn:hover { background: #f8f9fa; }
 
-        /* Floating Card */
+        .info-btn:hover { 
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(6, 182, 212, 0.3);
+        }
+
         .mission-card {
             position: absolute;
             top: 60px;
             left: 50%;
             transform: translateX(-50%);
-            width: 90%;
-            max-width: 500px;
+            width: calc(100% - 40px);
+            max-width: 520px;
             background: white;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            padding: 28px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
             z-index: 1000;
             display: flex;
             flex-direction: column;
+            gap: 16px;
+            border-left: 4px solid var(--accent);
+            animation: slideDown 0.4s ease-out;
+            backdrop-filter: blur(20px);
+        }
+
+        @keyframes slideDown {
+            from { transform: translateX(-50%) translateY(-20px); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+
+        .card-disabled { 
+            opacity: 0.5; 
+            pointer-events: none; 
+            filter: blur(1px);
+        }
+
+        .header-row { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-bottom: 1px solid var(--border); 
+            padding-bottom: 14px; 
             gap: 12px;
-            border-top: 4px solid #2c3e50;
         }
 
-        .card-disabled { opacity: 0.6; pointer-events: none; }
+        .title { 
+            font-weight: 700; 
+            color: var(--primary);
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 
-        .header-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        .title { font-weight: 700; color: #333; font-size: 18px; }
-        .coords-display { font-family: monospace; color: #666; background: #f8f9fa; padding: 4px 8px; border-radius: 4px; font-size: 13px; border: 1px solid #e9ecef; }
-        
-        .action-row { display: flex; gap: 10px; margin-top: 5px; }
-        input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; outline: none; font-size: 14px; }
-        input:focus { border-color: #2c3e50; }
+        .title i { color: var(--accent); }
 
-        button { padding: 10px 15px; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 13px; text-transform: uppercase; }
-        .btn-primary { background: #34495e; color: white; flex: 1; }
-        .btn-primary:hover { background: #2c3e50; }
-        .btn-deploy { background: #c0392b; color: white; flex: 1; }
-        .btn-deploy:hover { background: #a93226; }
-        .btn-deploy:disabled { background: #bdc3c7; cursor: not-allowed; }
+        .coords-display { 
+            font-family: 'Courier New', monospace; 
+            color: var(--accent);
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(6, 182, 212, 0.05));
+            padding: 8px 12px; 
+            border-radius: 6px; 
+            font-size: 12px; 
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
 
-        .status-msg { text-align: center; font-size: 13px; color: #27ae60; margin-top: 5px; height: 15px; font-weight: bold; }
-        .emergency-warning { color: #c0392b; font-weight: bold; text-align: center; display: none; background: #fadbd8; padding: 10px; border: 1px solid #c0392b; font-size: 12px; border-radius: 4px; }
+        .action-row { 
+            display: flex; 
+            gap: 12px; 
+            flex-wrap: wrap;
+        }
 
-        /* Modal Styles */
+        input, textarea { 
+            flex: 1;
+            min-width: 120px;
+            padding: 12px 14px; 
+            border: 1.5px solid var(--border); 
+            border-radius: 8px; 
+            outline: none; 
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            background: white;
+        }
+
+        input:focus, textarea:focus { 
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+        }
+
+        input::placeholder, textarea::placeholder { color: #9ca3af; }
+
+        button { 
+            padding: 12px 18px; 
+            border: none; 
+            border-radius: 8px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            transition: all 0.2s ease;
+            font-size: 13px; 
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-primary { 
+            background: var(--accent);
+            color: white;
+            flex: 1;
+        }
+
+        .btn-primary:hover:not(:disabled) { 
+            background: #0e7490;
+            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .btn-deploy { 
+            background: linear-gradient(135deg, var(--secondary), #991b1b);
+            color: white; 
+            flex: 1;
+        }
+
+        .btn-deploy:hover:not(:disabled) { 
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .btn-deploy:disabled { 
+            background: #d1d5db;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .status-msg { 
+            text-align: center; 
+            font-size: 13px; 
+            min-height: 20px; 
+            font-weight: 600;
+            animation: fadeIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .status-msg.success { color: var(--success); }
+        .status-msg.error { color: var(--secondary); }
+        .status-msg.loading { color: var(--accent); }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .emergency-warning { 
+            color: white;
+            font-weight: 700; 
+            text-align: center; 
+            display: none; 
+            background: linear-gradient(135deg, var(--secondary), #991b1b);
+            padding: 14px; 
+            border-radius: 8px;
+            font-size: 12px; 
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .alert-icon {
+            display: inline-block;
+            margin-right: 6px;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        /* ==================== MODAL ==================== */
         .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); z-index: 3000;
-            display: none; align-items: center; justify-content: center;
+            position: fixed; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); 
+            z-index: 3000;
+            display: none; 
+            align-items: center; 
+            justify-content: center;
+            backdrop-filter: blur(3px);
+            animation: fadeIn 0.2s ease;
         }
+
         .modal-box {
-            background: white; padding: 25px; border-radius: 8px; max-width: 350px; width: 85%;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative;
+            background: white; 
+            padding: 32px; 
+            border-radius: 12px; 
+            max-width: 400px; 
+            width: 90%;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            position: relative;
+            animation: slideUp 0.3s ease-out;
         }
-        .close-modal { position: absolute; top: 10px; right: 15px; font-size: 20px; cursor: pointer; color: #888; }
-        .info-item { margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
-        .info-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
-        .info-value { font-size: 16px; font-weight: bold; color: #333; display: block; }
-        .highlight { color: #c0392b; }
+
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .close-modal { 
+            position: absolute; 
+            top: 16px; 
+            right: 16px; 
+            font-size: 28px; 
+            cursor: pointer; 
+            color: #d1d5db;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .close-modal:hover { 
+            background: var(--light);
+            color: var(--primary);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-title i { color: var(--secondary); }
+
+        .info-item { 
+            margin-bottom: 16px; 
+            border-bottom: 1px solid var(--border); 
+            padding-bottom: 12px; 
+        }
+
+        .info-label { 
+            font-size: 11px; 
+            color: #9ca3af; 
+            text-transform: uppercase; 
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .info-value { 
+            font-size: 18px; 
+            font-weight: 700; 
+            color: var(--primary);
+            display: block;
+            margin-top: 4px;
+        }
+
+        .highlight { color: var(--secondary); font-weight: 800; }
+
+        .modal-disclaimer {
+            font-size: 12px; 
+            color: #6b7280; 
+            line-height: 1.6;
+            background: var(--light);
+            padding: 12px;
+            border-left: 3px solid var(--warning);
+            border-radius: 4px;
+            margin-top: 16px;
+        }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 768px) {
+            .mission-card { 
+                max-width: calc(100% - 20px);
+                padding: 20px;
+            }
+            
+            .header-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .action-row {
+                flex-direction: column;
+            }
+
+            input, button {
+                width: 100%;
+            }
+        }
+
+        /* ==================== LOADING SPINNER ==================== */
+        .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(6, 182, 212, 0.3);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
-
+    <!-- INFO MODAL -->
     <div class="modal-overlay" id="info-modal">
         <div class="modal-box">
             <span class="close-modal" onclick="closeModal()">&times;</span>
-            <h3 style="margin-top:0; color:#2c3e50;">Emergency Contacts</h3>
+            <div class="modal-title">
+                <i class="fas fa-phone-volume"></i>
+                Emergency Contacts
+            </div>
             
             <div class="info-item">
-                <span class="info-label">Fire Services </span>
+                <span class="info-label">🔥 Fire Services</span>
                 <span class="info-value highlight">101</span>
             </div>
             <div class="info-item">
-                <span class="info-label">National Emergency</span>
+                <span class="info-label">🚨 National Emergency</span>
                 <span class="info-value highlight">112</span>
             </div>
             <div class="info-item">
-                <span class="info-label">Ambulance</span>
+                <span class="info-label">🚑 Ambulance</span>
                 <span class="info-value">102</span>
             </div>
             
-            <p style="font-size:12px; color:#666; line-height: 1.4; margin-bottom: 0;">
-                <strong>Disclaimer:</strong> This is an autonomous assistance tool. In life-threatening situations, always contact manual emergency services immediately.
-            </p>
+            <div class="modal-disclaimer">
+                <strong>⚠️ Important Disclaimer:</strong> FFUAV is an autonomous assistance system. In life-threatening situations, always contact emergency services (101/112) immediately. This system supplements but does not replace professional emergency response.
+            </div>
         </div>
     </div>
 
-    <div id="system-status" class="status-ready">System Status: Connecting...</div>
+    <!-- STATUS BAR -->
+    <div id="system-status" class="status-ready">
+        <span class="status-icon"></span>
+        System Status: Connecting...
+    </div>
 
-    <button class="info-btn" onclick="openModal()">i</button>
+    <!-- INFO BUTTON -->
+    <button class="info-btn" onclick="openModal()" title="Emergency contacts">
+        <i class="fas fa-info"></i>
+    </button>
 
+    <!-- MAIN MISSION CARD -->
     <div class="mission-card" id="main-card">
         <div class="header-row">
-            <span class="title">Dispatch Control</span>
-            <span class="coords-display" id="coords-text">Lat: -, Lng: -</span>
+            <span class="title">
+                <i class="fas fa-helicopter"></i>
+                Dispatch Control
+            </span>
+            <span class="coords-display" id="coords-text">
+                <i class="fas fa-location-dot"></i>
+                Lat: -, Lng: -
+            </span>
         </div>
 
         <div id="busy-warning" class="emergency-warning">
-            SYSTEM BUSY: DRONE IN FLIGHT.<br>
-            PLEASE CONTACT 101 IMMEDIATELY.
+            <span class="alert-icon">⚠️</span>
+            SYSTEM BUSY: DRONE IN FLIGHT<br>
+            CONTACT 101 FOR CRITICAL SITUATIONS
         </div>
 
         <div class="action-row">
-            <button class="btn-primary" onclick="useMyLocation()">Use My Location</button>
+            <button class="btn-primary" onclick="useMyLocation()" title="Use current GPS location">
+                <i class="fas fa-location-crosshairs"></i>
+                My Location
+            </button>
         </div>
 
         <div class="action-row">
-            <input type="text" id="label" placeholder="Name">
-            <input type="tel" 
-            id="phone" 
-            placeholder="Phone Number (Required)" 
-            inputmode="numeric" 
-            pattern="[0-9]{10}"
-            maxlength="10"
-            required>
+            <input 
+                type="tel" 
+                id="phone" 
+                placeholder="10-Digit Phone (Required)" 
+                inputmode="numeric"
+                maxlength="10"
+                required>
+            <input 
+                type="text" 
+                id="label" 
+                placeholder="Landmark/Location Name"
+                maxlength="50">
         </div>
 
         <div class="action-row">
-            <button id="deployBtn" class="btn-deploy" onclick="sendMission()" disabled>TRANSMIT COORDINATES</button>
+            <button id="deployBtn" class="btn-deploy" onclick="sendMission()" disabled title="Send coordinates to server">
+                <i class="fas fa-paper-plane"></i>
+                TRANSMIT COORDINATES
+            </button>
         </div>
         <div class="status-msg" id="status-msg"></div>
     </div>
 
+    <!-- MAP -->
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, serverTimestamp, query, where, onSnapshot } 
-        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            serverTimestamp, 
+            query, 
+            where, 
+            onSnapshot 
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // --- CONFIGURATION ---
         const firebaseConfig = {
             apiKey: "AIzaSyD3j2PpWAjlOQo-8x22EIECrAvbYfwtvng",
             authDomain: "autonomous-ff-uav.firebaseapp.com",
@@ -189,21 +546,30 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Map Setup
         const map = L.map('map').setView([12.9141, 74.8560], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
 
         let marker;
         let selectedLat = null;
         let selectedLng = null;
         let isSystemBusy = false;
 
-        // --- Modal Logic ---
-        window.openModal = () => document.getElementById('info-modal').style.display = 'flex';
-        window.closeModal = () => document.getElementById('info-modal').style.display = 'none';
+        window.openModal = () => {
+            document.getElementById('info-modal').style.display = 'flex';
+        };
 
-        // --- BUSY CHECK LISTENER ---
-        // Keeps the UI locked if Admin has a PENDING mission
+        window.closeModal = () => {
+            document.getElementById('info-modal').style.display = 'none';
+        };
+
+        // Close modal on ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+
         const q = query(collection(db, "missions"), where("status", "in", ["PENDING", "IN_PROGRESS"]));
         
         onSnapshot(q, (snapshot) => {
@@ -211,27 +577,28 @@
             const card = document.getElementById('main-card');
             const warning = document.getElementById('busy-warning');
             
-            if (!snapshot.empty) {
-                // BUSY
-                isSystemBusy = true;
-                statusDiv.innerText = "System Status: BUSY (Operation in Progress)";
+            isSystemBusy = !snapshot.empty;
+
+            if (isSystemBusy) {
+                statusDiv.innerHTML = '<span class="status-icon"></span>System Status: BUSY (Operation in Progress)';
                 statusDiv.className = "status-busy";
                 card.classList.add("card-disabled");
                 warning.style.display = "block";
             } else {
-                // READY
-                isSystemBusy = false;
-                statusDiv.innerText = "System Status: ONLINE (Ready to Deploy)";
+                statusDiv.innerHTML = '<span class="status-icon"></span>System Status: ONLINE (Ready to Deploy)';
                 statusDiv.className = "status-ready";
                 card.classList.remove("card-disabled");
                 warning.style.display = "none";
             }
         });
 
-        // --- Map & Location Logic ---
         map.on('click', function(e) {
-            if(isSystemBusy) return;
+            if (isSystemBusy) {
+                showStatus('System is busy. Cannot select new location.', 'error');
+                return;
+            }
             updatePosition(e.latlng.lat, e.latlng.lng);
+            showStatus('Location selected on map', 'success');
         });
 
         window.updatePosition = function(lat, lng) {
@@ -239,39 +606,116 @@
             selectedLng = lng;
             
             if (marker) map.removeLayer(marker);
-            marker = L.marker([lat, lng]).addTo(map).bindPopup("Target Location").openPopup();
+            marker = L.marker([lat, lng], {
+                icon: L.icon({
+                    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+                    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41],
+                    popupAnchor: [1, -34],
+                    shadowSize: [41, 41]
+                })
+            }).addTo(map);
             
-            document.getElementById('coords-text').innerText = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            marker.bindPopup(`<strong>Target</strong><br>${lat.toFixed(5)}, ${lng.toFixed(5)}`).openPopup();
+            
+            document.getElementById('coords-text').innerHTML = `
+                <i class="fas fa-location-dot"></i>
+                ${lat.toFixed(5)}, ${lng.toFixed(5)}
+            `;
             document.getElementById('deployBtn').disabled = false;
         };
 
         window.useMyLocation = function() {
+            const btn = event.target.closest('button');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>Locating...';
+
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(pos => {
-                    const lat = pos.coords.latitude;
-                    const lng = pos.coords.longitude;
-                    map.setView([lat, lng], 15);
-                    updatePosition(lat, lng);
-                });
+                navigator.geolocation.getCurrentPosition(
+                    pos => {
+                        const lat = pos.coords.latitude;
+                        const lng = pos.coords.longitude;
+                        map.setView([lat, lng], 15);
+                        updatePosition(lat, lng);
+                        showStatus('Current location loaded', 'success');
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-location-crosshairs"></i>My Location';
+                    },
+                    err => {
+                        showStatus(`Location error: ${err.message}`, 'error');
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-location-crosshairs"></i>My Location';
+                    }
+                );
             } else {
-                alert("Geolocation is not supported by this browser.");
+                showStatus('Geolocation not supported', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-location-crosshairs"></i>My Location';
+            }
+        };
+
+        const phoneInput = document.getElementById('phone');
+        phoneInput.addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10);
+            validateForm();
+        });
+
+        phoneInput.addEventListener('blur', (e) => {
+            const phone = e.target.value;
+            if (phone && !/^\d{10}$/.test(phone)) {
+                showStatus('Phone must be exactly 10 digits', 'error');
+                e.target.style.borderColor = '#dc2626';
+            } else {
+                e.target.style.borderColor = '';
+            }
+        });
+
+        window.validateForm = () => {
+            const phone = document.getElementById('phone').value;
+            const hasLocation = selectedLat && selectedLng;
+            const isValid = /^\d{10}$/.test(phone) && hasLocation;
+            document.getElementById('deployBtn').disabled = !isValid;
+        };
+
+        window.showStatus = (message, type = 'info') => {
+            const statusDiv = document.getElementById('status-msg');
+            statusDiv.className = `status-msg ${type}`;
+            
+            let icon = '';
+            if (type === 'success') icon = '<i class="fas fa-check-circle"></i>';
+            else if (type === 'error') icon = '<i class="fas fa-exclamation-circle"></i>';
+            else if (type === 'loading') icon = '<span class="spinner"></span>';
+            
+            statusDiv.innerHTML = icon + message;
+            
+            if (type !== 'loading') {
+                setTimeout(() => statusDiv.innerHTML = '', 4000);
             }
         };
 
         window.sendMission = async function() {
-            if(isSystemBusy) return;
+            if (isSystemBusy) {
+                showStatus('System is busy. Please wait.', 'error');
+                return;
+            }
 
             const phone = document.getElementById('phone').value;
-            const label = document.getElementById('label').value || "Guest-point";
+            const label = document.getElementById('label').value || "Mission-" + Date.now();
             
-            if (!phone) { alert("Phone number is required."); return; }
-            // <CHANGE> Validate that phone is exactly 10 digits only
-            if (!/^\d{10}$/.test(phone)) { alert("Phone number must be exactly 10 digits."); return; }
-            if (!selectedLat) { alert("Please select a location."); return; }
+            if (!/^\d{10}$/.test(phone)) {
+                showStatus('Phone must be exactly 10 digits', 'error');
+                return;
+            }
+
+            if (!selectedLat) {
+                showStatus('Please select a location on the map', 'error');
+                return;
+            }
 
             const btn = document.getElementById('deployBtn');
-            btn.innerText = "Sending...";
             btn.disabled = true;
+            showStatus('Transmitting...', 'loading');
 
             try {
                 await addDoc(collection(db, "missions"), {
@@ -283,14 +727,17 @@
                     status: "PENDING",
                     timestamp: serverTimestamp()
                 });
-                document.getElementById('status-msg').innerText = "Coordinates Received by Server";
-                btn.innerText = "TRANSMIT COORDINATES";
-                // Note: The UI will automatically lock once the database updates 'status' to PENDING
+
+                showStatus('Mission transmitted successfully!', 'success');
+                document.getElementById('phone').value = '';
+                document.getElementById('label').value = '';
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i>TRANSMIT COORDINATES';
+                
             } catch (e) {
-                console.error("Error: ", e);
-                alert("Transmission failed.");
+                console.error("[v0] Transmission error:", e);
+                showStatus(`Transmission failed: ${e.message}`, 'error');
                 btn.disabled = false;
-                btn.innerText = "TRANSMIT COORDINATES";
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i>TRANSMIT COORDINATES';
             }
         };
     </script>

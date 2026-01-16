@@ -2,80 +2,166 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Dashboard - FFUAV</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="FFUAV Admin Dashboard - Flight Command Center">
+    <meta name="theme-color" content="#1f2937">
+    <title>Admin Dashboard - FFUAV Command Center</title>
 
-    <!-- Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #1f2937;
+            --secondary: #dc2626;
+            --accent: #0891b2;
+            --success: #10b981;
+            --light: #f3f4f6;
+            --border: #e5e7eb;
+            --text: #374151;
+        }
+
+        html, body { 
+            height: 100%; 
+            overflow: hidden;
+        }
+
         body {
-            margin: 0;
-            font-family: 'Segoe UI', sans-serif;
-            background: #f4f6f8;
-            height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, var(--primary), #374151);
+            color: var(--text);
         }
 
         /* ================= LOGIN OVERLAY ================= */
         #login-overlay {
             position: fixed;
             inset: 0;
-            background: linear-gradient(135deg, #1f2933, #111827);
+            background: linear-gradient(135deg, var(--primary), #111827);
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 9999;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .login-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .login-logo {
+            font-size: 48px;
+            color: var(--accent);
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
         }
 
         .login-box {
             background: white;
-            padding: 30px;
-            width: 320px;
-            border-radius: 10px;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+            padding: 40px;
+            width: 100%;
+            max-width: 360px;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             text-align: center;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
 
         .login-box h2 {
-            margin-bottom: 10px;
-            color: #1f2933;
+            margin-bottom: 8px;
+            color: var(--primary);
+            font-size: 24px;
         }
 
         .login-box p {
-            font-size: 13px;
-            color: #666;
-            margin-bottom: 20px;
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
 
         .login-box input {
             width: 100%;
-            padding: 10px;
-            font-size: 14px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            margin-bottom: 15px;
+            padding: 14px 16px;
+            font-size: 15px;
+            border-radius: 8px;
+            border: 1.5px solid var(--border);
+            margin-bottom: 18px;
+            outline: none;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .login-box input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+        }
+
+        .login-box input::placeholder {
+            color: #d1d5db;
         }
 
         .login-box button {
             width: 100%;
-            padding: 10px;
-            background: #dc3545;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--accent), #0891b2);
             border: none;
             color: white;
-            font-weight: bold;
-            border-radius: 5px;
+            font-weight: 700;
+            border-radius: 8px;
             cursor: pointer;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
         .login-box button:hover {
-            background: #c82333;
+            box-shadow: 0 6px 20px rgba(6, 182, 212, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .login-box button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
 
         .login-error {
-            color: #dc3545;
-            font-size: 12px;
-            margin-top: 10px;
+            color: var(--secondary);
+            font-size: 13px;
+            margin-top: 14px;
             display: none;
+            animation: shake 0.3s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
         }
 
         /* ================= DASHBOARD ================= */
@@ -84,6 +170,7 @@
             padding: 20px;
             height: 100vh;
             box-sizing: border-box;
+            animation: fadeIn 0.4s ease;
         }
 
         .header {
@@ -91,84 +178,304 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
         }
 
-        h2 { margin: 0; color: #333; }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-left h2 { 
+            margin: 0; 
+            color: white;
+            font-size: 24px;
+        }
+
+        .status-badge-header {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-badge-header .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: white;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .header-right {
+            display: flex;
+            gap: 8px;
+        }
+
+        .logout-btn {
+            background: var(--secondary);
+            color: white;
+            padding: 8px 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .logout-btn:hover {
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+        }
 
         .dashboard-container {
-            display: flex;
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
             gap: 20px;
-            height: calc(100vh - 90px);
+            height: calc(100vh - 110px);
         }
 
         .panel {
             background: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             overflow: hidden;
             display: flex;
             flex-direction: column;
         }
 
-        .table-panel { flex: 3; padding: 20px; overflow-y: auto; }
-        .map-panel { flex: 2; }
+        .table-panel { 
+            padding: 24px; 
+            overflow-y: auto;
+        }
+
+        .map-panel { 
+            overflow: hidden;
+        }
+
+        .panel-header {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 14px;
+            font-size: 13px;
         }
 
         th, td {
             padding: 12px;
-            border-bottom: 1px solid #eee;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
         }
 
         th {
-            color: #666;
-            font-weight: 600;
+            color: #6b7280;
+            font-weight: 700;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: var(--light);
         }
 
-        tr:hover { background: #f9f9f9; }
+        tr:hover { background: var(--light); transition: all 0.2s ease; }
 
         .toolbar {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             display: flex;
             gap: 10px;
+            flex-wrap: wrap;
         }
 
         button {
-            padding: 8px 12px;
+            padding: 10px 14px;
             border: none;
-            border-radius: 4px;
-            font-size: 13px;
-            font-weight: 600;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
             cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
         }
 
-        .btn-refresh { background: #00bcd4; color: white; }
-        .btn-csv { border: 1px solid #00bcd4; background: white; color: #00bcd4; }
-        .btn-clear { background: #ff4757; color: white; margin-left: auto; }
+        .btn-refresh { 
+            background: var(--accent); 
+            color: white;
+        }
 
-        .btn-cancel { background: #e0e0e0; }
-        .btn-abort { background: #dc3545; color: white; }
-        .btn-select { background: #28a745; color: white; }
+        .btn-refresh:hover { 
+            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+        }
+
+        .btn-csv { 
+            border: 1.5px solid var(--accent); 
+            background: white; 
+            color: var(--accent);
+        }
+
+        .btn-csv:hover {
+            background: rgba(6, 182, 212, 0.05);
+        }
+
+        .btn-clear { 
+            background: var(--secondary); 
+            color: white; 
+            margin-left: auto;
+        }
+
+        .btn-clear:hover {
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+        }
+
+        .btn-select { 
+            background: var(--success); 
+            color: white;
+            font-size: 11px;
+            padding: 8px 10px;
+        }
+
+        .btn-select:hover {
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-cancel { 
+            background: #f3f4f6;
+            color: #6b7280;
+            font-size: 11px;
+            padding: 8px 10px;
+        }
+
+        .btn-cancel:hover {
+            background: #e5e7eb;
+        }
+
+        .btn-abort { 
+            background: var(--secondary); 
+            color: white;
+            font-size: 11px;
+            padding: 8px 10px;
+        }
+
+        .btn-abort:hover {
+            box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+        }
 
         .status-badge {
-            padding: 4px 8px;
+            padding: 6px 10px;
             border-radius: 4px;
             font-size: 11px;
-            font-weight: bold;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .status-PENDING { background: #fff3cd; }
-        .status-IN_PROGRESS { background: #cce5ff; }
-        .status-COMPLETED { background: #d4edda; }
-        .status-ABORT_SIGNAL { background: #f8d7da; }
+        .status-PENDING { 
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            color: #78350f;
+        }
+
+        .status-IN_PROGRESS { 
+            background: linear-gradient(135deg, #bfdbfe, #93c5fd);
+            color: #1e3a8a;
+        }
+
+        .status-COMPLETED { 
+            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+            color: #065f46;
+        }
+
+        .status-ABORT_SIGNAL { 
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
+            color: #7f1d1d;
+        }
 
         #map-preview {
             width: 100%;
             height: 100%;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            color: #9ca3af;
+            gap: 12px;
+        }
+
+        .empty-state i {
+            font-size: 32px;
+            opacity: 0.5;
+        }
+
+        /* ================= RESPONSIVE ================= */
+        @media (max-width: 1024px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .header-right {
+                width: 100%;
+            }
+
+            .table-panel {
+                padding: 16px;
+            }
+
+            th, td {
+                padding: 10px 8px;
+                font-size: 12px;
+            }
+
+            button {
+                padding: 8px 10px;
+                font-size: 11px;
+            }
+        }
+
+        .spinner-icon {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(6, 182, 212, 0.3);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -176,30 +483,71 @@
 
 <!-- ================= LOGIN ================= -->
 <div id="login-overlay">
-    <div class="login-box">
-        <h2>Admin Access</h2>
-        <p>Enter password to access dashboard</p>
-        <input type="password" id="password" placeholder="Password">
-        <button onclick="login()">LOGIN</button>
-        <div class="login-error" id="login-error">Incorrect password</div>
+    <div class="login-container">
+        <div class="login-logo">
+            <i class="fas fa-helicopter"></i>
+        </div>
+        <div class="login-box">
+            <h2>Command Center</h2>
+            <p><i class="fas fa-lock"></i>Admin Access</p>
+            <input 
+                type="password" 
+                id="password" 
+                placeholder="Enter Password"
+                autocomplete="off">
+            <button onclick="login()">
+                <i class="fas fa-sign-in-alt"></i>
+                Login
+            </button>
+            <div class="login-error" id="login-error">
+                <i class="fas fa-exclamation-circle"></i>
+                Incorrect password
+            </div>
+        </div>
     </div>
 </div>
 
 <!-- ================= DASHBOARD ================= -->
 <div id="dashboard">
     <div class="header">
-        <div>
-            <h2>Admin Dashboard</h2>
-            <div style="color:#666; font-size:14px;">Flight Command Center</div>
+        <div class="header-left">
+            <h2>
+                <i class="fas fa-tower-broadcast"></i>
+                Command Center
+            </h2>
+            <div class="status-badge-header">
+                <span class="dot"></span>
+                Live
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="logout-btn" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i>
+                Logout
+            </button>
         </div>
     </div>
 
     <div class="dashboard-container">
         <div class="panel table-panel">
+            <div class="panel-header">
+                <i class="fas fa-list"></i>
+                Mission Control
+            </div>
+
             <div class="toolbar">
-                <button class="btn-refresh" onclick="location.reload()">Refresh</button>
-                <button class="btn-csv" onclick="exportCSV()">Export</button>
-                <button class="btn-clear" onclick="clearHistory()">Clear</button>
+                <button class="btn-refresh" onclick="location.reload()">
+                    <i class="fas fa-sync-alt"></i>
+                    Refresh
+                </button>
+                <button class="btn-csv" onclick="exportCSV()">
+                    <i class="fas fa-download"></i>
+                    Export CSV
+                </button>
+                <button class="btn-clear" onclick="confirmClearHistory()">
+                    <i class="fas fa-trash-alt"></i>
+                    Clear All
+                </button>
             </div>
 
             <table>
@@ -208,60 +556,107 @@
                         <th>Status</th>
                         <th>Action</th>
                         <th>Label</th>
-                        <th>Lat / Lng</th>
+                        <th>Coordinates</th>
                         <th>Phone</th>
                         <th>Time</th>
                     </tr>
                 </thead>
                 <tbody id="mission-table">
-                    <tr><td colspan="6">Loading…</td></tr>
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 40px; color: #9ca3af;">
+                            <span class="spinner-icon"></span> Loading missions...
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
 
         <div class="panel map-panel">
+            <div style="padding: 16px; border-bottom: 1px solid var(--border); background: var(--light);">
+                <div class="panel-header" style="margin: 0;">
+                    <i class="fas fa-map"></i>
+                    Live Map
+                </div>
+            </div>
             <div id="map-preview"></div>
         </div>
     </div>
 </div>
 
-<!-- ================= LOGIN SCRIPT ================= -->
+<!-- ================= SCRIPTS ================= -->
 <script>
-    const ADMIN_PASSWORD = "1234"; // CHANGE THIS
-
-    // <CHANGE> Check if already logged in this session using sessionStorage
-    function checkExistingSession() {
-        if (sessionStorage.getItem('adminLoggedIn') === 'true') {
-            document.getElementById("login-overlay").style.display = "none";
-            document.getElementById("dashboard").style.display = "block";
-            loadDashboard();
-        }
-    }
-
+    const ADMIN_PASSWORD = "1234";
+    
     function login() {
         const input = document.getElementById("password").value;
         const error = document.getElementById("login-error");
+        const btn = event.target;
+        
+        if (!input) {
+            error.style.display = "block";
+            return;
+        }
 
-        if (input === ADMIN_PASSWORD) {
-            // <CHANGE> Store login state in sessionStorage so password is only asked on browser refresh
-            sessionStorage.setItem('adminLoggedIn', 'true');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-icon"></span> Verifying...';
+
+        // Simulate processing
+        setTimeout(() => {
+            if (input === ADMIN_PASSWORD) {
+                sessionStorage.setItem('ffuav_admin_auth', 'true');
+                error.style.display = "none";
+                document.getElementById("login-overlay").style.display = "none";
+                document.getElementById("dashboard").style.display = "block";
+                loadDashboard();
+            } else {
+                error.style.display = "block";
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i>Login';
+            }
+        }, 500);
+    }
+
+    window.addEventListener('load', () => {
+        if (sessionStorage.getItem('ffuav_admin_auth') === 'true') {
             document.getElementById("login-overlay").style.display = "none";
             document.getElementById("dashboard").style.display = "block";
             loadDashboard();
-        } else {
-            error.style.display = "block";
         }
-    }
+    });
 
-    // Check session on page load
-    window.addEventListener('load', checkExistingSession);
+    window.logout = () => {
+        if (confirm('Are you sure you want to logout?')) {
+            sessionStorage.removeItem('ffuav_admin_auth');
+            document.getElementById("dashboard").style.display = "none";
+            document.getElementById("login-overlay").style.display = "flex";
+            document.getElementById("password").value = '';
+            document.getElementById("mission-table").innerHTML = '<tr><td colspan="6" style="text-align: center;">Loading...</td></tr>';
+        }
+    };
+
+    window.confirmClearHistory = () => {
+        if (confirm('🚨 This will delete ALL missions permanently. Continue?')) {
+            const confirmed = prompt('Type "CONFIRM" to delete all records:');
+            if (confirmed === 'CONFIRM') {
+                clearHistory();
+            }
+        }
+    };
+
+    // Press Enter to login
+    document.addEventListener('DOMContentLoaded', () => {
+        const passwordInput = document.getElementById('password');
+        if (passwordInput) {
+            passwordInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') login();
+            });
+        }
+    });
 </script>
 
-<!-- ================= DASHBOARD SCRIPT ================= -->
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script type="module">
     window.loadDashboard = function () {
-
         import("https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js").then(({ initializeApp }) => {
             import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js").then(
                 ({ getFirestore, collection, query, orderBy, onSnapshot, updateDoc, doc, getDocs, deleteDoc }) => {
@@ -276,47 +671,144 @@
                 const db = getFirestore(app);
 
                 const map = L.map('map-preview').setView([12.9141, 74.8560], 10);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 19
+                }).addTo(map);
 
                 const q = query(collection(db, "missions"), orderBy("timestamp", "desc"));
                 const table = document.getElementById("mission-table");
+                let missionMarkers = {};
 
                 onSnapshot(q, snap => {
                     table.innerHTML = "";
+                    
+                    if (snap.empty) {
+                        table.innerHTML = `
+                            <tr>
+                                <td colspan="6" style="text-align: center; padding: 60px;">
+                                    <div class="empty-state">
+                                        <i class="fas fa-inbox"></i>
+                                        <p>No missions yet</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                        return;
+                    }
+
                     snap.forEach(docSnap => {
                         const d = docSnap.data();
                         const row = document.createElement("tr");
-                        // <CHANGE> Added SELECT and CANCEL buttons for PENDING missions
+                        
+                        let actionHTML = "-";
+                        
+                        if (d.status === "PENDING") {
+                            actionHTML = `
+                                <button class="btn-select" onclick="updateStatus('${docSnap.id}','IN_PROGRESS')">
+                                    <i class="fas fa-play-circle"></i> Select
+                                </button>
+                                <button class="btn-cancel" onclick="updateStatus('${docSnap.id}','CANCELED')">
+                                    <i class="fas fa-times-circle"></i> Cancel
+                                </button>
+                            `;
+                        } else if (d.status === "IN_PROGRESS") {
+                            actionHTML = `
+                                <button class="btn-abort" onclick="updateStatus('${docSnap.id}','ABORT_SIGNAL')">
+                                    <i class="fas fa-stop-circle"></i> Abort
+                                </button>
+                            `;
+                        } else if (d.status === "COMPLETED") {
+                            actionHTML = '<span style="color: var(--success);"><i class="fas fa-check"></i> Done</span>';
+                        } else if (d.status === "ABORT_SIGNAL") {
+                            actionHTML = '<span style="color: var(--secondary);"><i class="fas fa-ban"></i> Stopped</span>';
+                        }
+
+                        const timeStr = d.timestamp?.toDate().toLocaleTimeString() || "N/A";
+                        
                         row.innerHTML = `
                             <td><span class="status-badge status-${d.status}">${d.status}</span></td>
-                            <td>${
-                                d.status === "PENDING"
-                                    ? `<button class="btn-select" onclick="updateStatus('${docSnap.id}','IN_PROGRESS')">SELECT</button> <button class="btn-cancel" onclick="updateStatus('${docSnap.id}','CANCELLED')">CANCEL</button>`
-                                    : d.status === "IN_PROGRESS"
-                                    ? `<button class="btn-abort" onclick="updateStatus('${docSnap.id}','ABORT_SIGNAL')">ABORT</button>`
-                                    : "-"
-                            }</td>
-                            <td>${d.label}</td>
-                            <td>${d.lat.toFixed(4)}, ${d.lng.toFixed(4)}</td>
-                            <td>${d.phone}</td>
-                            <td>${d.timestamp?.toDate().toLocaleTimeString() || ""}</td>
+                            <td>${actionHTML}</td>
+                            <td><strong>${d.label}</strong></td>
+                            <td><code style="background: var(--light); padding: 4px 6px; border-radius: 4px; font-size: 11px;">${d.lat.toFixed(4)}, ${d.lng.toFixed(4)}</code></td>
+                            <td><strong>${d.phone}</strong></td>
+                            <td>${timeStr}</td>
                         `;
                         table.appendChild(row);
-                        L.marker([d.lat, d.lng]).addTo(map);
+
+                        const markerId = `marker-${docSnap.id}`;
+                        
+                        if (missionMarkers[markerId]) {
+                            map.removeLayer(missionMarkers[markerId]);
+                        }
+
+                        let markerColor = '#3b82f6'; // blue
+                        if (d.status === 'IN_PROGRESS') markerColor = '#f59e0b'; // orange
+                        if (d.status === 'COMPLETED') markerColor = '#10b981'; // green
+                        if (d.status === 'ABORT_SIGNAL') markerColor = '#dc2626'; // red
+
+                        const marker = L.marker([d.lat, d.lng], {
+                            icon: L.icon({
+                                iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${markerColor.replace('#', '')}.png`,
+                                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                                iconSize: [25, 41],
+                                iconAnchor: [12, 41],
+                                popupAnchor: [1, -34],
+                                shadowSize: [41, 41]
+                            })
+                        }).bindPopup(`<strong>${d.label}</strong><br>Status: ${d.status}<br>Phone: ${d.phone}`).addTo(map);
+
+                        missionMarkers[markerId] = marker;
                     });
                 });
 
                 window.updateStatus = async (id, status) => {
-                    await updateDoc(doc(db, "missions", id), { status });
+                    try {
+                        await updateDoc(doc(db, "missions", id), { status });
+                        console.log("[v0] Status updated:", id, status);
+                    } catch (e) {
+                        console.error("[v0] Status update failed:", e);
+                        alert('Failed to update status');
+                    }
                 };
 
                 window.clearHistory = async () => {
-                    if (!confirm("Delete all missions?")) return;
-                    const s = await getDocs(collection(db, "missions"));
-                    s.forEach(d => deleteDoc(d.ref));
+                    try {
+                        const s = await getDocs(collection(db, "missions"));
+                        s.forEach(d => deleteDoc(d.ref));
+                        console.log("[v0] All missions deleted");
+                    } catch (e) {
+                        console.error("[v0] Clear failed:", e);
+                        alert('Failed to clear history');
+                    }
                 };
 
-                window.exportCSV = () => alert("CSV export placeholder");
+                window.exportCSV = async () => {
+                    try {
+                        const s = await getDocs(collection(db, "missions"));
+                        let csv = "Status,Label,Latitude,Longitude,Phone,Timestamp\n";
+                        
+                        s.forEach(d => {
+                            const data = d.data();
+                            const timestamp = data.timestamp?.toDate().toISOString() || "N/A";
+                            csv += `"${data.status}","${data.label}",${data.lat},${data.lng},"${data.phone}","${timestamp}"\n`;
+                        });
+
+                        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                        const link = document.createElement("a");
+                        const url = URL.createObjectURL(blob);
+                        link.setAttribute("href", url);
+                        link.setAttribute("download", `ffuav-missions-${Date.now()}.csv`);
+                        link.style.visibility = 'hidden';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        console.log("[v0] CSV exported successfully");
+                    } catch (e) {
+                        console.error("[v0] Export failed:", e);
+                        alert('Failed to export CSV');
+                    }
+                };
             });
         });
     };
