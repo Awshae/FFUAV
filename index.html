@@ -111,25 +111,29 @@
 
         .mission-card {
             position: absolute;
-            top: 60px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: calc(100% - 40px);
-            max-width: 550px;
+            top: 70px;
+            left: 20px;
+            transform: none;
+        
+            width: 360px;                 /* SMALLER WIDTH */
+            max-width: 90vw;
+        
+            max-height: calc(100vh - 100px); /* LIMIT HEIGHT */
+            overflow-y: auto;              /* INTERNAL SCROLL */
+        
             background: white;
-            padding: 28px;
+            padding: 20px;                 /* LESS PADDING */
             border-radius: 12px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.12);
             z-index: 1000;
+        
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 14px;
+        
             border-left: 4px solid var(--accent);
-            animation: slideDown 0.4s ease-out;
-            backdrop-filter: blur(20px);
-            max-height: 85vh;
-            overflow-y: auto;
         }
+        
 
         @keyframes slideDown {
             from { transform: translateX(-50%) translateY(-20px); opacity: 0; }
@@ -388,11 +392,14 @@
 
         /* ==================== RESPONSIVE ==================== */
         @media (max-width: 768px) {
-            .mission-card { 
-                max-width: calc(100% - 20px);
-                padding: 20px;
+            .mission-card {
+                width: calc(100% - 20px);
+                left: 10px;
+                right: 10px;
+                top: auto;
+                bottom: 10px;
+                max-height: 55vh; /* keep map visible */
             }
-            
             .header-row {
                 flex-direction: column;
                 align-items: flex-start;
