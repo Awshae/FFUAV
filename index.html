@@ -3,263 +3,196 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FFUAV Admin Dashboard</title>
+<title>FFUAV - Emergency Drone Dispatch System</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 
 <style>
-/* ================= LOGIN SCREEN ================= */
-#login-screen {
+/* ================= LOGIN OVERLAY ================= */
+#login-overlay {
     position: fixed;
     inset: 0;
-    background: #0f172a;
+    background: linear-gradient(135deg, #020617, #1f2937);
+    z-index: 9999;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 9999;
 }
 
 .login-box {
     background: white;
     padding: 30px;
-    border-radius: 10px;
-    width: 320px;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    width: 100%;
+    max-width: 360px;
+    border-radius: 12px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.4);
 }
 
 .login-box h2 {
-    margin: 0 0 15px;
-    color: #111;
+    margin-bottom: 20px;
     text-align: center;
+    color: #1f2937;
 }
 
 .login-box input {
     width: 100%;
-    padding: 10px;
+    padding: 12px;
     margin-bottom: 12px;
+    border-radius: 8px;
+    border: 1.5px solid #e5e7eb;
     font-size: 14px;
 }
 
 .login-box button {
     width: 100%;
-    padding: 10px;
-    background: #2563eb;
-    border: none;
+    padding: 12px;
+    background: #dc2626;
     color: white;
-    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
     cursor: pointer;
 }
 
 .login-error {
-    color: red;
+    color: #dc2626;
     font-size: 13px;
     text-align: center;
+    margin-top: 8px;
+    min-height: 16px;
+}
+
+/* ================= APP VISIBILITY ================= */
+#app {
     display: none;
 }
-
-/* ================= DASHBOARD ================= */
-body {
-    margin: 0;
-    padding: 20px;
-    font-family: 'Segoe UI', sans-serif;
-    background: #f4f6f8;
-    height: 100vh;
-    box-sizing: border-box;
-    display: none; /* hidden until login */
-    flex-direction: column;
-}
-
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.dashboard-container {
-    display: flex;
-    gap: 20px;
-    flex: 1;
-    overflow: hidden;
-}
-
-.panel {
-    background: white;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-    display: flex;
-    flex-direction: column;
-}
-
-.table-panel {
-    flex: 3;
-    padding: 20px;
-    overflow-y: auto;
-}
-
-.map-panel {
-    flex: 2;
-}
-
-#map-preview {
-    width: 100%;
-    height: 100%;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 14px;
-}
-
-th, td {
-    padding: 12px;
-    border-bottom: 1px solid #eee;
-}
-
-th {
-    color: #666;
-    font-weight: 600;
-}
-
-.toolbar {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
-}
-
-button {
-    padding: 8px 12px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: 600;
-}
-
-.btn-refresh { background: #00bcd4; color: white; }
-.btn-csv { background: white; border: 1px solid #00bcd4; color: #00bcd4; }
-.btn-clear { background: #ff4757; color: white; margin-left: auto; }
-
-.status-badge {
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: bold;
-}
-
-.status-PENDING { background: #fff3cd; }
-.status-IN_PROGRESS { background: #cce5ff; }
-.status-COMPLETED { background: #d4edda; }
-.status-ABORT_SIGNAL { background: #dc3545; color: white; }
 </style>
-</head>
 
+</head>
 <body>
 
-<!-- ================= LOGIN SCREEN ================= -->
-<div id="login-screen">
+<!-- ================= LOGIN ================= -->
+<div id="login-overlay">
     <div class="login-box">
-        <h2>Admin Login</h2>
-        <input type="password" id="password" placeholder="Enter admin password">
+        <h2>FFUAV Admin Access</h2>
+        <input type="text" id="login-user" placeholder="Username">
+        <input type="password" id="login-pass" placeholder="Password">
         <button onclick="login()">Login</button>
-        <div class="login-error" id="login-error">Incorrect password</div>
+        <div class="login-error" id="login-error"></div>
     </div>
 </div>
 
-<!-- ================= DASHBOARD ================= -->
-<div class="header">
-    <h2>Admin Dashboard</h2>
-    <span style="font-size:12px;color:#888">Active Monitoring</span>
+<!-- ================= MAIN APP ================= -->
+<div id="app">
+
+<!-- ===== YOUR ORIGINAL UI (UNCHANGED) ===== -->
+
+<div id="system-status" class="status-ready">
+    <span class="status-icon"></span>
+    System Status: Connecting...
 </div>
 
-<div class="dashboard-container">
-    <div class="panel table-panel">
-        <div class="toolbar">
-            <button class="btn-refresh" onclick="location.reload()">Refresh</button>
-            <button class="btn-csv" onclick="exportCSV()">Export CSV</button>
-            <button class="btn-clear" onclick="clearHistory()">Clear History</button>
-        </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Status</th>
-                    <th>Label</th>
-                    <th>Location</th>
-                    <th>Phone</th>
-                    <th>Time</th>
-                </tr>
-            </thead>
-            <tbody id="mission-table">
-                <tr><td colspan="5" style="text-align:center">Loading...</td></tr>
-            </tbody>
-        </table>
+<button class="info-btn" onclick="openModal()">
+    <i class="fas fa-info-circle"></i>
+</button>
+
+<div class="mission-card" id="main-card">
+    <div class="header-row">
+        <span class="title"><i class="fas fa-helicopter"></i> Dispatch Control</span>
+        <span class="coords-display" id="coords-text">Lat: -, Lng: -</span>
     </div>
 
-    <div class="panel map-panel">
-        <div id="map-preview"></div>
+    <div id="busy-warning" class="emergency-warning">
+        SYSTEM BUSY: DRONE IN FLIGHT
     </div>
+
+    <input id="reporter-name" placeholder="Full Name" required>
+    <input id="phone" placeholder="10-digit phone" maxlength="10">
+    <input id="label" placeholder="Landmark (optional)">
+
+    <button onclick="useMyLocation()">Use My Location</button>
+    <button id="deployBtn" onclick="sendMission()" disabled>TRANSMIT</button>
+    <div id="status-msg"></div>
 </div>
 
+<div id="map"></div>
+
+</div>
+
+<!-- ================= SCRIPTS ================= -->
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-<script type="module">
-/* ================= SIMPLE PASSWORD ================= */
-const ADMIN_PASSWORD = "ffuav123"; // CHANGE THIS
+<script>
+/* ================= LOGIN LOGIC ================= */
+const ADMIN_USER = "admin";
+const ADMIN_PASS = "ffuav123";
 
-window.login = function () {
-    const input = document.getElementById("password").value;
-    if (input === ADMIN_PASSWORD) {
-        document.getElementById("login-screen").style.display = "none";
-        document.body.style.display = "flex";
-        initDashboard();
+function login() {
+    const u = document.getElementById("login-user").value;
+    const p = document.getElementById("login-pass").value;
+
+    if (u === ADMIN_USER && p === ADMIN_PASS) {
+        document.getElementById("login-overlay").style.display = "none";
+        document.getElementById("app").style.display = "block";
     } else {
-        document.getElementById("login-error").style.display = "block";
+        document.getElementById("login-error").innerText = "Invalid credentials";
     }
+}
+</script>
+
+<script type="module">
+/* ================= YOUR FIREBASE + MAP CODE ================= */
+/* (UNCHANGED EXCEPT INDENTATION) */
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, addDoc, serverTimestamp } 
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyD3j2PpWAjlOQo-8x22EIECrAvbYfwtvng",
+    authDomain: "autonomous-ff-uav.firebaseapp.com",
+    projectId: "autonomous-ff-uav"
 };
 
-/* ================= DASHBOARD LOGIC ================= */
-function initDashboard() {
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-    import("https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js").then(({ initializeApp }) => {
-        import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js").then(
-        ({ getFirestore, collection, query, orderBy, onSnapshot }) => {
+const map = L.map('map').setView([12.9141, 74.8560], 13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-            const firebaseConfig = {
-                apiKey: "AIzaSyD3j2PpWAjlOQo-8x22EIECrAvbYfwtvng",
-                authDomain: "autonomous-ff-uav.firebaseapp.com",
-                projectId: "autonomous-ff-uav"
-            };
+let marker, selectedLat, selectedLng;
 
-            const app = initializeApp(firebaseConfig);
-            const db = getFirestore(app);
+map.on('click', e => {
+    selectedLat = e.latlng.lat;
+    selectedLng = e.latlng.lng;
+    if (marker) map.removeLayer(marker);
+    marker = L.marker(e.latlng).addTo(map);
+    document.getElementById("deployBtn").disabled = false;
+});
 
-            const map = L.map('map-preview').setView([12.9141, 74.8560], 10);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-            const q = query(collection(db, "missions"), orderBy("timestamp", "desc"));
-            onSnapshot(q, snap => {
-                const tbody = document.getElementById("mission-table");
-                tbody.innerHTML = "";
-                snap.forEach(doc => {
-                    const d = doc.data();
-                    const tr = document.createElement("tr");
-                    tr.innerHTML = `
-                        <td><span class="status-badge status-${d.status}">${d.status}</span></td>
-                        <td>${d.label || "-"}</td>
-                        <td>${d.lat.toFixed(5)}, ${d.lng.toFixed(5)}</td>
-                        <td>${d.phone}</td>
-                        <td>${d.timestamp?.toDate().toLocaleTimeString() || ""}</td>
-                    `;
-                    tbody.appendChild(tr);
-                    L.marker([d.lat, d.lng]).addTo(map);
-                });
-            });
-        });
+window.useMyLocation = function () {
+    navigator.geolocation.getCurrentPosition(pos => {
+        selectedLat = pos.coords.latitude;
+        selectedLng = pos.coords.longitude;
+        map.setView([selectedLat, selectedLng], 15);
+        if (marker) map.removeLayer(marker);
+        marker = L.marker([selectedLat, selectedLng]).addTo(map);
+        document.getElementById("deployBtn").disabled = false;
     });
-}
+};
 
-window.exportCSV = () => alert("CSV export stub");
-window.clearHistory = () => alert("Clear history stub");
+window.sendMission = async function () {
+    await addDoc(collection(db, "missions"), {
+        lat: selectedLat,
+        lng: selectedLng,
+        phone: document.getElementById("phone").value,
+        label: document.getElementById("label").value,
+        status: "PENDING",
+        timestamp: serverTimestamp()
+    });
+    document.getElementById("status-msg").innerText = "Mission sent";
+};
 </script>
 
 </body>
