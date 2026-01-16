@@ -746,7 +746,6 @@
 
             const reporterName = document.getElementById('reporter-name').value.trim();
             const phone = document.getElementById('phone').value.trim();
-            const incidentType = document.getElementById('incident-type').value;
             const severityLevel = document.getElementById('severity-level').value;
             const label = document.getElementById('label').value || "Fire Report";
             
@@ -755,13 +754,6 @@
                 showStatus('Please enter your name.', 'error');
                 return; 
             }
-
-            // Validate incident type
-            if (!incidentType) {
-                showStatus('Please select an incident type.', 'error');
-                return;
-            }
-
             // Validate severity level
             if (!severityLevel) {
                 showStatus('Please select severity level.', 'error');
