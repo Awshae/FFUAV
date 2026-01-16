@@ -573,9 +573,7 @@
 
         <div class="action-row">
             <button id="deployBtn" class="btn-deploy" onclick="sendMission()" disabled title="Send coordinates to server">
-                <i class="fas fa-paper-plane">
                 TRANSMIT COORDINATES
-                </i>
             </button>
         </div>
         <div class="status-msg" id="status-msg"></div>
@@ -783,12 +781,12 @@
                     timestamp: serverTimestamp()
                 });
                 showStatus('Coordinates transmitted successfully', 'success');
-                btn.innerText = '<i class="fas fa-paper-plane">TRANSMIT COORDINATES</i>';
+                btn.innerText = 'TRANSMIT COORDINATES';
             } catch (e) {
                 console.error("Error: ", e);
                 showStatus('Transmission failed. Please try again.', 'error');
                 btn.disabled = false;
-                btn.innerText = '<i class="fas fa-paper-plane">TRANSMIT COORDINATES</i>';
+                btn.innerText = 'TRANSMIT COORDINATES';
             }
         };
     </script>
