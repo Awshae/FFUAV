@@ -782,12 +782,12 @@
                     timestamp: serverTimestamp()
                 });
                 showStatus('Coordinates transmitted successfully', 'success');
-                btn.innerText = '<i class="fas fa-paper-plane"></i>TRANSMIT COORDINATES';
+                btn.innerText = '<i class="fas fa-paper-plane">TRANSMIT COORDINATES</i>';
             } catch (e) {
                 console.error("Error: ", e);
                 showStatus('Transmission failed. Please try again.', 'error');
                 btn.disabled = false;
-                btn.innerText = '<i class="fas fa-paper-plane"></i>TRANSMIT COORDINATES';
+                btn.innerText = '<i class="fas fa-paper-plane">TRANSMIT COORDINATES</i>';
             }
         };
     </script>

@@ -635,7 +635,7 @@
     };
 
     window.confirmClearHistory = () => {
-        if (confirm('🚨 This will delete ALL missions permanently. Continue?')) {
+        if (confirm('This will delete ALL missions permanently. Continue?')) {
             const confirmed = prompt('Type "CONFIRM" to delete all records:');
             if (confirmed === 'CONFIRM') {
                 clearHistory();
