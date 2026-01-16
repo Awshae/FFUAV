@@ -24,20 +24,44 @@
             --text: #374151;
         }
 
-        html, body { height: 100%; overflow: hidden; }
-        
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
-            background: linear-gradient(135deg, var(--dark) 0%, var(--primary) 100%);
-            color: var(--text);
+        /* ==================== SIDE-BY-SIDE LAYOUT ==================== */
+        .layout-wrapper {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+            position: relative;
         }
 
-        #map { height: 100vh; width: 100%; z-index: 1; }
+        .form-panel {
+            width: 33.333%;
+            height: 100vh;
+            background: linear-gradient(135deg, var(--dark) 0%, var(--primary) 100%);
+            padding: 16px;
+            overflow-y: auto;
+            z-index: 100;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.3);
+            border-right: 1px solid rgba(255,255,255,0.1);
+            animation: slideInLeft 0.5s ease-out;
+        }
 
-        /* ==================== TOP STATUS BAR ==================== */
+        .map-panel {
+            flex: 1;
+            height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+
+        @keyframes slideInLeft {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* ==================== STATUS BAR ==================== */
         #system-status {
             position: absolute;
-            top: 0; left: 0; right: 0;
+            top: 0;
+            left: 0;
+            right: 0;
             padding: 12px 20px;
             text-align: center;
             font-weight: 700;
@@ -84,7 +108,7 @@
         /* ==================== FLOATING CARDS ==================== */
         .info-btn {
             position: absolute;
-            top: 60px;
+            top: 20px;
             right: 20px;
             width: 44px;
             height: 44px;
@@ -109,185 +133,172 @@
             box-shadow: 0 6px 20px rgba(6, 182, 212, 0.3);
         }
 
+        .info-btn:active {
+            transform: scale(0.95);
+        }
+
         .mission-card {
-            position: absolute;
-            top: 60px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: calc(100% - 40px);
-            max-width: 550px;
-            background: white;
-            padding: 28px;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            position: relative;
+            transform: none;
+            width: 100%;
+            max-width: none;
+            background: transparent;
+            padding: 20px 0;
+            border-radius: 0;
+            box-shadow: none;
             z-index: 1000;
             display: flex;
             flex-direction: column;
-            gap: 16px;
-            border-left: 4px solid var(--accent);
-            animation: slideDown 0.4s ease-out;
-            backdrop-filter: blur(20px);
-            max-height: 85vh;
-            overflow-y: auto;
+            gap: 14px;
+            border-left: none;
+            animation: none;
+            backdrop-filter: none;
+            max-height: none;
+            overflow: visible;
         }
 
-        @keyframes slideDown {
-            from { transform: translateX(-50%) translateY(-20px); opacity: 0; }
-            to { transform: translateX(-50%) translateY(0); opacity: 1; }
-        }
-
-        .card-disabled { 
-            opacity: 0.5; 
-            pointer-events: none; 
-            filter: blur(1px);
-        }
-
-        .header-row { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            border-bottom: 1px solid var(--border); 
-            padding-bottom: 14px; 
-            gap: 12px;
-        }
-
-        .title { 
-            font-weight: 700; 
-            color: var(--primary);
-            font-size: 18px;
+        .card-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: white;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            margin-bottom: 12px;
         }
 
-        .title i { color: var(--accent); }
-
-        .coords-display { 
-            font-family: 'Courier New', monospace; 
-            color: var(--accent);
-            background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(6, 182, 212, 0.05));
-            padding: 8px 12px; 
-            border-radius: 6px; 
-            font-size: 12px; 
-            border: 1px solid rgba(6, 182, 212, 0.3);
-            font-weight: 600;
-            letter-spacing: 0.5px;
+        .card-subtitle {
+            font-size: 13px;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 20px;
+            font-weight: 500;
         }
 
-        .action-row { 
-            display: flex; 
-            gap: 12px; 
-            flex-wrap: wrap;
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.7); }
+            50% { box-shadow: 0 0 0 8px rgba(6, 182, 212, 0); }
         }
 
         input, textarea { 
             flex: 1;
             min-width: 120px;
             padding: 12px 14px; 
-            border: 1.5px solid var(--border); 
+            border: 1.5px solid rgba(255,255,255,0.2); 
             border-radius: 8px; 
             outline: none; 
             font-size: 14px;
             font-family: inherit;
             transition: all 0.2s ease;
-            background: white;
+            background: rgba(255,255,255,0.95);
+            position: relative;
         }
 
         input:focus, textarea:focus { 
             border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2);
+            transform: translateY(-1px);
+        }
+
+        input:valid { 
+            border-color: var(--success);
         }
 
         input::placeholder, textarea::placeholder { color: #9ca3af; }
         
-        /* Add input validation styling */
         input:invalid:not(:placeholder-shown) {
             border-color: var(--secondary);
             box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
-        }
-
-        button { 
-            padding: 12px 18px; 
-            border: none; 
-            border-radius: 8px; 
-            font-weight: 700; 
-            cursor: pointer; 
-            transition: all 0.2s ease;
-            font-size: 13px; 
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-        }
-
-        .btn-primary { 
-            background: var(--accent);
-            color: white;
-            flex: 1;
-        }
-
-        .btn-primary:hover:not(:disabled) { 
-            background: #0e7490;
-            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
-            transform: translateY(-2px);
         }
 
         .btn-deploy { 
             background: linear-gradient(135deg, var(--secondary), #991b1b);
             color: white; 
             flex: 1;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+        }
+
+        .btn-deploy::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.1);
+            transition: left 0.3s ease;
+        }
+
+        .btn-deploy:hover:not(:disabled)::before {
+            left: 100%;
         }
 
         .btn-deploy:hover:not(:disabled) { 
-            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+            box-shadow: 0 6px 20px rgba(220, 38, 38, 0.4);
             transform: translateY(-2px);
         }
 
-        .btn-deploy:disabled { 
-            background: #d1d5db;
-            cursor: not-allowed;
-            opacity: 0.6;
+        .btn-deploy:active:not(:disabled) {
+            transform: translateY(0);
         }
 
-        .status-msg { 
-            text-align: center; 
-            font-size: 13px; 
-            min-height: 20px; 
-            font-weight: 600;
-            animation: fadeIn 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-        }
-
-        .status-msg.success { color: var(--success); }
-        .status-msg.error { color: var(--secondary); }
-        .status-msg.loading { color: var(--accent); }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .emergency-warning { 
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #0891b2);
             color: white;
-            font-weight: 700; 
-            text-align: center; 
-            display: none; 
-            background: linear-gradient(135deg, var(--secondary), #991b1b);
-            padding: 14px; 
-            border-radius: 8px;
-            font-size: 12px; 
-            animation: shake 0.5s ease-in-out;
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
         }
 
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.1);
+            transition: left 0.3s ease;
+        }
+
+        .btn-primary:hover:not(:disabled)::before {
+            left: 100%;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            box-shadow: 0 6px 20px rgba(6, 182, 212, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .btn-primary:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230891b2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 20px;
+            padding-right: 36px;
+        }
+
+        select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+        }
+
+        .btn-deploy.loading {
+            pointer-events: none;
+            opacity: 0.8;
+        }
+
+        .btn-deploy.loading span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
 
         /* ==================== MODAL ==================== */
@@ -320,6 +331,11 @@
             to { transform: translateY(0); opacity: 1; }
         }
 
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
         .close-modal { 
             position: absolute; 
             top: 16px; 
@@ -348,7 +364,7 @@
             margin-bottom: 20px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 12px;
         }
 
         .info-item { 
@@ -386,28 +402,117 @@
             margin-top: 16px;
         }
 
-        /* ==================== RESPONSIVE ==================== */
-        @media (max-width: 768px) {
-            .mission-card { 
-                max-width: calc(100% - 20px);
-                padding: 20px;
-            }
-            
-            .header-row {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .action-row {
-                flex-direction: column;
-            }
-
-            input, button {
-                width: 100%;
-            }
+        /* ==================== FORM ELEMENTS ==================== */
+        .field-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
 
-        /* ==================== LOADING SPINNER ==================== */
+        .field-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.9);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
+        .required-indicator {
+            color: #fbbf24;
+            font-weight: 700;
+        }
+
+        .header-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .action-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .coords-display {
+            font-size: 12px;
+            color: rgba(255,255,255,0.7);
+            background: rgba(255,255,255,0.1);
+            padding: 8px 12px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+            justify-content: flex-end;
+        }
+
+        .emergency-warning {
+            background: rgba(220, 38, 38, 0.15);
+            border: 1.5px solid rgba(220, 38, 38, 0.4);
+            color: #fca5a5;
+            padding: 12px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
+            letter-spacing: 0.5px;
+            animation: pulse-warning 2s infinite;
+        }
+
+        @keyframes pulse-warning {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .status-msg {
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+            padding: 8px;
+            border-radius: 6px;
+            min-height: 20px;
+        }
+
+        .status-msg.success {
+            color: var(--success);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .status-msg.error {
+            color: var(--secondary);
+            background: rgba(220, 38, 38, 0.1);
+        }
+
+        /* ==================== ZOOM CONTROLS ==================== */
+        .leaflet-top.leaflet-right {
+            top: 80px !important;
+            right: 20px !important;
+        }
+
+        .leaflet-control-zoom {
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+            border: none !important;
+            overflow: hidden;
+        }
+
+        .leaflet-control-zoom a {
+            width: 40px !important;
+            height: 40px !important;
+            line-height: 40px !important;
+            background: white !important;
+            color: var(--accent) !important;
+            font-weight: 700 !important;
+            border: none !important;
+            transition: all 0.2s ease;
+        }
+
+        .leaflet-control-zoom a:hover {
+            background: var(--accent) !important;
+            color: white !important;
+        }
+
+        /* ==================== SPINNER ==================== */
         .spinner {
             display: inline-block;
             width: 12px;
@@ -422,24 +527,49 @@
             to { transform: rotate(360deg); }
         }
 
-        /* Add field section styling for better organization */
-        .field-section {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 1024px) {
+            .form-panel {
+                width: 40%;
+            }
         }
 
-        .field-label {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--primary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
+        @media (max-width: 768px) {
+            .layout-wrapper {
+                flex-direction: column;
+            }
 
-        .required-indicator {
-            color: var(--secondary);
-            font-weight: 700;
+            .form-panel {
+                width: 100%;
+                height: 50vh;
+                border-right: none;
+                border-bottom: 1px solid rgba(255,255,255,0.1);
+            }
+
+            .map-panel {
+                height: 50vh;
+            }
+
+            .header-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .action-row {
+                flex-direction: column;
+            }
+
+            input, button {
+                width: 100%;
+            }
+
+            .card-title {
+                font-size: 20px;
+            }
+
+            .info-btn {
+                top: 60px;
+            }
         }
     </style>
 </head>
@@ -449,8 +579,7 @@
         <div class="modal-box">
             <span class="close-modal" onclick="closeModal()">&times;</span>
             <div class="modal-title">
-                <i class="fas fa-info-circle"></i>
-                Emergency Information
+                <span>Emergency Information</span>
             </div>
             
             <div class="info-item">
@@ -472,127 +601,112 @@
         </div>
     </div>
 
-    <!-- STATUS BAR -->
-    <div id="system-status" class="status-ready">
-        <span class="status-icon"></span>
-        System Status: Connecting...
-    </div>
+    <!-- LAYOUT WRAPPER -->
+    <div class="layout-wrapper">
+        <!-- FORM PANEL (1/3) -->
+        <div class="form-panel">
+            <!-- STATUS BAR -->
+            <div id="system-status" class="status-ready">
+                <span class="status-icon"></span>
+                System Status: Connecting...
+            </div>
 
-    <!-- INFO BUTTON -->
-    <button class="info-btn" onclick="openModal()" title="Emergency information">
-        <i class="fas fa-info-circle"></i>
-    </button>
+            <!-- MAIN MISSION CARD -->
+            <div class="mission-card" id="main-card">
+                <div class="card-title">
+                    <i class="fas fa-fire-alt"></i>
+                    Fire Incident Report
+                </div>
+                <div class="card-subtitle">Complete the form below to dispatch emergency drones</div>
 
-    <!-- MAIN MISSION CARD -->
-    <div class="mission-card" id="main-card">
-        <div class="header-row">
-            <span class="title">
-                <i class="fas fa-helicopter"></i>
-                Dispatch Control
-            </span>
-            <span class="coords-display" id="coords-text">
-                <i class="fas fa-location-dot"></i>
-                Lat: -, Lng: -
-            </span>
-        </div>
+                <div id="busy-warning" class="emergency-warning" style="display: none;">
+                    SYSTEM BUSY: DRONE IN FLIGHT
+                    CONTACT 101 FOR CRITICAL SITUATIONS
+                </div>
 
-        <div id="busy-warning" class="emergency-warning">
-            SYSTEM BUSY: DRONE IN FLIGHT
-            CONTACT 101 FOR CRITICAL SITUATIONS
-        </div>
+                <div class="field-section">
+                    <label class="field-label">
+                        Full Name <span class="required-indicator">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="reporter-name" 
+                        placeholder="Enter your full name"
+                        maxlength="100"
+                        required>
+                </div>
 
-        <!-- Add NAME field (required) before phone -->
-        <div class="field-section">
-            <label class="field-label">
-                <span>Full Name</span>
-                <span class="required-indicator">*</span>
-            </label>
-            <input 
-                type="text" 
-                id="reporter-name" 
-                placeholder="Enter your full name"
-                maxlength="100"
-                required>
-        </div>
+                <div class="field-section">
+                    <label class="field-label">
+                        Phone Number <span class="required-indicator">*</span>
+                    </label>
+                    <input 
+                        type="tel" 
+                        id="phone" 
+                        placeholder="10-Digit Number (XXXXXXXXXX)" 
+                        inputmode="numeric"
+                        maxlength="10"
+                        pattern="[0-9]{10}"
+                        required>
+                </div>
 
-        <!-- Add fire incident details (fast form fields) -->
-        <div class="field-section">
-            <label class="field-label">
-                <span>Incident Type</span>
-                <span class="required-indicator">*</span>
-            </label>
-            <div class="action-row">
-                <select id="incident-type" style="flex: 1; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; transition: all 0.2s ease;" required>
-                    <option value="">Select type...</option>
-                    <option value="structure">Structure Fire</option>
-                    <option value="vehicle">Vehicle Fire</option>
-                    <option value="forest">Forest Fire</option>
-                    <option value="hazmat">Hazmat Incident</option>
-                    <option value="other">Other Emergency</option>
-                </select>
+                <div class="field-section">
+                    <label class="field-label">
+                        Severity Level <span class="required-indicator">*</span>
+                    </label>
+                    <select id="severity-level" required>
+                        <option value="">Select severity...</option>
+                        <option value="low">Low - Contained</option>
+                        <option value="medium">Medium - Spreading</option>
+                        <option value="high">High - Out of Control</option>
+                        <option value="critical">Critical - Threat to Life</option>
+                    </select>
+                </div>
+
+                <div class="field-section">
+                    <label class="field-label">Location Name (Optional)</label>
+                    <input 
+                        type="text" 
+                        id="label" 
+                        placeholder="e.g., Central Park, Building A"
+                        maxlength="50">
+                </div>
+
+                <div class="action-row">
+                    <button class="btn-primary" onclick="useMyLocation()" title="Use current GPS location">
+                        <i class="fas fa-location-crosshairs"></i>
+                        Use My Location
+                    </button>
+                </div>
+
+                <div class="header-row">
+                    <span id="coords-text" class="coords-display">
+                        <i class="fas fa-map-pin"></i>
+                        Lat: -, Lng: -
+                    </span>
+                </div>
+
+                <div class="action-row">
+                    <button id="deployBtn" class="btn-deploy" onclick="sendMission()" disabled title="Send incident report">
+                        <i class="fas fa-paper-plane"></i>
+                        DISPATCH DRONE
+                    </button>
+                </div>
+                <div class="status-msg" id="status-msg"></div>
             </div>
         </div>
 
-        <!-- Add severity level -->
-        <div class="field-section">
-            <label class="field-label">
-                <span>Severity Level</span>
-                <span class="required-indicator">*</span>
-            </label>
-            <div class="action-row">
-                <select id="severity-level" style="flex: 1; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; transition: all 0.2s ease;" required>
-                    <option value="">Select severity...</option>
-                    <option value="low">Low (Contained)</option>
-                    <option value="medium">Medium (Spreading)</option>
-                    <option value="high">High (Out of Control)</option>
-                    <option value="critical">Critical (Threat to Life)</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="action-row">
-            <button class="btn-primary" onclick="useMyLocation()" title="Use current GPS location">
-                <i class="fas fa-location-crosshairs"></i>
-                My Location
+        <!-- MAP PANEL (2/3) -->
+        <div class="map-panel">
+            <!-- INFO BUTTON -->
+            <button class="info-btn" onclick="openModal()" title="View emergency information">
+                <span>i</span>
             </button>
-        </div>
 
-        <!-- Update phone field label and add required indicator -->
-        <div class="field-section">
-            <label class="field-label">
-                <span>Phone Number</span>
-                <span class="required-indicator">*</span>
-            </label>
-            <input 
-                type="tel" 
-                id="phone" 
-                placeholder="10-Digit Phone Number" 
-                inputmode="numeric"
-                maxlength="10"
-                pattern="[0-9]{10}"
-                required>
+            <!-- MAP -->
+            <div id="map"></div>
         </div>
-
-        <div class="field-section">
-            <label class="field-label">Landmark / Location Name (Optional)</label>
-            <input 
-                type="text" 
-                id="label" 
-                placeholder="e.g., Near Central Park, Building A"
-                maxlength="50">
-        </div>
-
-        <div class="action-row">
-            <button id="deployBtn" class="btn-deploy" onclick="sendMission()" disabled title="Send coordinates to server">
-                <i class="fas fa-paper-plane"></i>
-                TRANSMIT COORDINATES
-            </button>
-        </div>
-        <div class="status-msg" id="status-msg"></div>
     </div>
-
-    <!-- MAP -->
-    <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script type="module">
@@ -626,190 +740,180 @@
         }).addTo(map);
 
         let marker;
-        let selectedLat = null;
-        let selectedLng = null;
-        let isSystemBusy = false;
+        let currentCoords = null;
 
-        window.openModal = () => {
+        const reporterNameInput = document.getElementById('reporter-name');
+        const phoneInput = document.getElementById('phone');
+        const severityInput = document.getElementById('severity-level');
+        const labelInput = document.getElementById('label');
+        const deployBtn = document.getElementById('deployBtn');
+        const statusMsg = document.getElementById('status-msg');
+        const systemStatus = document.getElementById('system-status');
+        const busyWarning = document.getElementById('busy-warning');
+        const coordsText = document.getElementById('coords-text');
+
+        phoneInput.addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/[^0-9]/g, '').slice(0, 10);
+            checkFormValidity();
+        });
+
+        reporterNameInput.addEventListener('input', checkFormValidity);
+        severityInput.addEventListener('change', checkFormValidity);
+
+        function checkFormValidity() {
+            const isValid = reporterNameInput.value.trim() !== '' && 
+                          phoneInput.value.length === 10 && 
+                          severityInput.value !== '';
+            deployBtn.disabled = !isValid;
+        }
+
+        map.on('click', (e) => {
+            currentCoords = { lat: e.latlng.lat, lng: e.latlng.lng };
+            updateMarker(e.latlng.lat, e.latlng.lng);
+            updateCoordDisplay();
+            checkFormValidity();
+        });
+
+        function updateMarker(lat, lng) {
+            if (marker) {
+                map.removeLayer(marker);
+            }
+            marker = L.circleMarker([lat, lng], {
+                radius: 8,
+                fillColor: 'var(--secondary)',
+                color: 'white',
+                weight: 3,
+                opacity: 1,
+                fillOpacity: 0.9
+            }).addTo(map).bindPopup(`<b>Report Location</b><br>Lat: ${lat.toFixed(6)}<br>Lng: ${lng.toFixed(6)}`);
+        }
+
+        function updateCoordDisplay() {
+            if (currentCoords) {
+                coordsText.innerHTML = `<i class="fas fa-map-pin"></i>Lat: ${currentCoords.lat.toFixed(4)}, Lng: ${currentCoords.lng.toFixed(4)}`;
+            }
+        }
+
+        function useMyLocation() {
+            if (navigator.geolocation) {
+                const btn = event.target.closest('button');
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner"></span> Getting Location...';
+
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const { latitude, longitude } = position.coords;
+                        currentCoords = { lat: latitude, lng: longitude };
+                        updateMarker(latitude, longitude);
+                        updateCoordDisplay();
+                        map.flyTo([latitude, longitude], 16);
+                        checkFormValidity();
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-location-crosshairs"></i> Use My Location';
+                    },
+                    (error) => {
+                        showStatus('Unable to get location. Please enable GPS or click on map.', 'error');
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-location-crosshairs"></i> Use My Location';
+                    }
+                );
+            }
+        }
+
+        async function sendMission() {
+            if (!currentCoords) {
+                showStatus('Please select a location on the map or use My Location', 'error');
+                return;
+            }
+
+            const name = reporterNameInput.value.trim();
+            const phone = phoneInput.value;
+            const severity = severityInput.value;
+            const label = labelInput.value.trim();
+
+            if (!name || phone.length !== 10 || !severity) {
+                showStatus('Please fill in all required fields', 'error');
+                return;
+            }
+
+            deployBtn.disabled = true;
+            deployBtn.classList.add('loading');
+            deployBtn.innerHTML = '<span class="spinner"></span> Transmitting...';
+
+            try {
+                const mission = {
+                    reporterName: name,
+                    phone: phone,
+                    latitude: currentCoords.lat,
+                    longitude: currentCoords.lng,
+                    label: label,
+                    severity: severity,
+                    status: 'PENDING',
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp()
+                };
+
+                const docRef = await addDoc(collection(db, 'missions'), mission);
+                showStatus('Drone dispatched successfully! Reference: ' + docRef.id, 'success');
+                
+                setTimeout(() => {
+                    reporterNameInput.value = '';
+                    phoneInput.value = '';
+                    severityInput.value = '';
+                    labelInput.value = '';
+                    currentCoords = null;
+                    if (marker) map.removeLayer(marker);
+                    coordsText.innerHTML = '<i class="fas fa-map-pin"></i>Lat: -, Lng: -';
+                    deployBtn.classList.remove('loading');
+                    deployBtn.innerHTML = '<i class="fas fa-paper-plane"></i> DISPATCH DRONE';
+                    checkFormValidity();
+                }, 2000);
+            } catch (error) {
+                console.error('Error sending mission:', error);
+                showStatus('Error dispatching drone. Please try again.', 'error');
+                deployBtn.disabled = false;
+                deployBtn.classList.remove('loading');
+                deployBtn.innerHTML = '<i class="fas fa-paper-plane"></i> DISPATCH DRONE';
+            }
+        }
+
+        function showStatus(message, type) {
+            statusMsg.textContent = message;
+            statusMsg.className = 'status-msg ' + type;
+            setTimeout(() => {
+                if (statusMsg.className.includes(type)) {
+                    statusMsg.textContent = '';
+                    statusMsg.className = 'status-msg';
+                }
+            }, 4000);
+        }
+
+        // Monitor system status
+        const missionsQuery = query(collection(db, 'missions'), where('status', 'in', ['PENDING', 'IN_PROGRESS']));
+        onSnapshot(missionsQuery, (snapshot) => {
+            const hasBusyMissions = snapshot.docs.some(doc => doc.data().status === 'IN_PROGRESS');
+            if (hasBusyMissions) {
+                systemStatus.className = 'status-busy';
+                systemStatus.innerHTML = '<span class="status-icon"></span>System Status: DRONE IN FLIGHT';
+                busyWarning.style.display = 'block';
+            } else {
+                systemStatus.className = 'status-ready';
+                systemStatus.innerHTML = '<span class="status-icon"></span>System Status: Ready';
+                busyWarning.style.display = 'none';
+            }
+        });
+
+        // Modal functions
+        window.openModal = function() {
             document.getElementById('info-modal').style.display = 'flex';
         };
 
-        window.closeModal = () => {
+        window.closeModal = function() {
             document.getElementById('info-modal').style.display = 'none';
         };
 
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeModal();
-        });
-
-        const q = query(collection(db, "missions"), where("status", "in", ["PENDING", "IN_PROGRESS"]));
-        
-        onSnapshot(q, (snapshot) => {
-            const statusDiv = document.getElementById('system-status');
-            const card = document.getElementById('main-card');
-            const warning = document.getElementById('busy-warning');
-            
-            isSystemBusy = !snapshot.empty;
-
-            if (isSystemBusy) {
-                statusDiv.innerHTML = '<span class="status-icon"></span>System Status: BUSY (Operation in Progress)';
-                statusDiv.className = "status-busy";
-                card.classList.add("card-disabled");
-                warning.style.display = "block";
-            } else {
-                statusDiv.innerHTML = '<span class="status-icon"></span>System Status: ONLINE (Ready to Deploy)';
-                statusDiv.className = "status-ready";
-                card.classList.remove("card-disabled");
-                warning.style.display = "none";
-            }
-        });
-
-        map.on('click', function(e) {
-            if (isSystemBusy) {
-                showStatus('System is busy. Cannot select new location.', 'error');
-                return;
-            }
-            updatePosition(e.latlng.lat, e.latlng.lng);
-            showStatus('Location selected on map', 'success');
-        });
-
-        window.updatePosition = function(lat, lng) {
-            selectedLat = lat;
-            selectedLng = lng;
-            
-            if (marker) map.removeLayer(marker);
-            marker = L.marker([lat, lng], {
-                icon: L.icon({
-                    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-                    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-                    iconSize: [25, 41],
-                    iconAnchor: [12, 41],
-                    popupAnchor: [1, -34],
-                    shadowSize: [41, 41]
-                })
-            }).addTo(map);
-            
-            marker.bindPopup(`<strong>Target</strong><br>${lat.toFixed(5)}, ${lng.toFixed(5)}`).openPopup();
-            
-            document.getElementById('coords-text').innerHTML = `
-                <i class="fas fa-location-dot"></i>
-                ${lat.toFixed(5)}, ${lng.toFixed(5)}
-            `;
-            document.getElementById('deployBtn').disabled = false;
-        };
-
-        window.useMyLocation = function() {
-            const btn = event.target.closest('button');
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner"></span>Locating...';
-
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    pos => {
-                        const lat = pos.coords.latitude;
-                        const lng = pos.coords.longitude;
-                        map.setView([lat, lng], 15);
-                        updatePosition(lat, lng);
-                        btn.disabled = false;
-                        btn.innerHTML = '<i class="fas fa-location-crosshairs"></i>My Location';
-                        showStatus('Location acquired successfully', 'success');
-                    },
-                    err => {
-                        btn.disabled = false;
-                        btn.innerHTML = '<i class="fas fa-location-crosshairs"></i>My Location';
-                        showStatus('Unable to get location. Please enable GPS.', 'error');
-                    }
-                );
-            } else {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-location-crosshairs"></i>My Location';
-                showStatus('Geolocation not supported by this browser.', 'error');
-            }
-        };
-
-        window.validatePhoneNumber = function(phone) {
-            const phoneRegex = /^[0-9]{10}$/;
-            return phoneRegex.test(phone);
-        };
-
-        window.showStatus = function(msg, type = '') {
-            const statusDiv = document.getElementById('status-msg');
-            statusDiv.innerText = msg;
-            statusDiv.className = 'status-msg ' + type;
-        };
-
-        window.sendMission = async function() {
-            if(isSystemBusy) {
-                showStatus('System is busy. Try again later.', 'error');
-                return;
-            }
-
-            const reporterName = document.getElementById('reporter-name').value.trim();
-            const phone = document.getElementById('phone').value.trim();
-            const incidentType = document.getElementById('incident-type').value;
-            const severityLevel = document.getElementById('severity-level').value;
-            const label = document.getElementById('label').value || "Fire Report";
-            
-            // Validate name
-            if (!reporterName) { 
-                showStatus('Please enter your name.', 'error');
-                return; 
-            }
-
-            // Validate incident type
-            if (!incidentType) {
-                showStatus('Please select an incident type.', 'error');
-                return;
-            }
-
-            // Validate severity level
-            if (!severityLevel) {
-                showStatus('Please select severity level.', 'error');
-                return;
-            }
-
-            // Validate phone
-            if (!phone) { 
-                showStatus('Phone number is required.', 'error');
-                return; 
-            }
-
-            if (!validatePhoneNumber(phone)) {
-                showStatus('Phone must be exactly 10 digits.', 'error');
-                return;
-            }
-
-            if (!selectedLat) { 
-                showStatus('Please select a location on the map.', 'error');
-                return; 
-            }
-
-            const btn = document.getElementById('deployBtn');
-            btn.innerText = '<span class="spinner"></span> Transmitting...';
-            btn.disabled = true;
-
-            try {
-                await addDoc(collection(db, "missions"), {
-                    lat: selectedLat,
-                    lng: selectedLng,
-                    alt: 15.0,
-                    phone: phone,
-                    reporterName: reporterName,
-                    incidentType: incidentType,
-                    severityLevel: severityLevel,
-                    label: label,
-                    status: "PENDING",
-                    timestamp: serverTimestamp()
-                });
-                showStatus('Coordinates transmitted successfully', 'success');
-                btn.innerText = '<i class="fas fa-paper-plane"></i>TRANSMIT COORDINATES';
-            } catch (e) {
-                console.error("Error: ", e);
-                showStatus('Transmission failed. Please try again.', 'error');
-                btn.disabled = false;
-                btn.innerText = '<i class="fas fa-paper-plane"></i>TRANSMIT COORDINATES';
-            }
-        };
+        window.useMyLocation = useMyLocation;
+        window.sendMission = sendMission;
     </script>
 </body>
 </html>
