@@ -152,6 +152,7 @@
 
         .btn-cancel { background: #e0e0e0; }
         .btn-abort { background: #dc3545; color: white; }
+        .btn-select { background: #28a745; color: white; }
 
         .status-badge {
             padding: 4px 8px;
@@ -228,11 +229,22 @@
 <script>
     const ADMIN_PASSWORD = "1234"; // CHANGE THIS
 
+    // <CHANGE> Check if already logged in this session using sessionStorage
+    function checkExistingSession() {
+        if (sessionStorage.getItem('adminLoggedIn') === 'true') {
+            document.getElementById("login-overlay").style.display = "none";
+            document.getElementById("dashboard").style.display = "block";
+            loadDashboard();
+        }
+    }
+
     function login() {
         const input = document.getElementById("password").value;
         const error = document.getElementById("login-error");
 
         if (input === ADMIN_PASSWORD) {
+            // <CHANGE> Store login state in sessionStorage so password is only asked on browser refresh
+            sessionStorage.setItem('adminLoggedIn', 'true');
             document.getElementById("login-overlay").style.display = "none";
             document.getElementById("dashboard").style.display = "block";
             loadDashboard();
@@ -240,6 +252,9 @@
             error.style.display = "block";
         }
     }
+
+    // Check session on page load
+    window.addEventListener('load', checkExistingSession);
 </script>
 
 <!-- ================= DASHBOARD SCRIPT ================= -->
@@ -271,11 +286,16 @@
                     snap.forEach(docSnap => {
                         const d = docSnap.data();
                         const row = document.createElement("tr");
+                        // <CHANGE> Added SELECT and CANCEL buttons for PENDING missions
                         row.innerHTML = `
                             <td><span class="status-badge status-${d.status}">${d.status}</span></td>
-                            <td>${d.status === "IN_PROGRESS"
-                                ? `<button class="btn-abort" onclick="updateStatus('${docSnap.id}','ABORT_SIGNAL')">ABORT</button>`
-                                : "-"}</td>
+                            <td>${
+                                d.status === "PENDING"
+                                    ? `<button class="btn-select" onclick="updateStatus('${docSnap.id}','IN_PROGRESS')">SELECT</button> <button class="btn-cancel" onclick="updateStatus('${docSnap.id}','CANCELLED')">CANCEL</button>`
+                                    : d.status === "IN_PROGRESS"
+                                    ? `<button class="btn-abort" onclick="updateStatus('${docSnap.id}','ABORT_SIGNAL')">ABORT</button>`
+                                    : "-"
+                            }</td>
                             <td>${d.label}</td>
                             <td>${d.lat.toFixed(4)}, ${d.lng.toFixed(4)}</td>
                             <td>${d.phone}</td>

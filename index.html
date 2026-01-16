@@ -265,6 +265,8 @@
             const label = document.getElementById('label').value || "Guest-point";
             
             if (!phone) { alert("Phone number is required."); return; }
+            // <CHANGE> Validate that phone is exactly 10 digits only
+            if (!/^\d{10}$/.test(phone)) { alert("Phone number must be exactly 10 digits."); return; }
             if (!selectedLat) { alert("Please select a location."); return; }
 
             const btn = document.getElementById('deployBtn');
