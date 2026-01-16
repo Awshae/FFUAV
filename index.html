@@ -152,8 +152,14 @@
         </div>
 
         <div class="action-row">
-            <input type="tel" id="phone" placeholder="Phone Number (Required)" required>
-            <input type="text" id="label" placeholder="Label (e.g. Highway KM 45)">
+            <input type="tel" 
+            id="phone" 
+            placeholder="Phone Number (Required)" 
+            inputmode="numeric" 
+            pattern="[0-9]{10}"
+            maxlength="10"
+            required>
+            <input type="text" id="label" placeholder="Landmark">
         </div>
 
         <div class="action-row">

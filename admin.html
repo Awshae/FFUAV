@@ -2,92 +2,218 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - FFUAV</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
     <style>
-        body { margin: 0; padding: 20px; font-family: 'Segoe UI', sans-serif; background: #f4f6f8; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; }
-        
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        h2 { margin: 0; color: #333; }
-        
-        /* Dashboard Grid: 60% Table, 40% Map */
-        .dashboard-container { display: flex; gap: 20px; flex: 1; height: 100%; overflow: hidden; }
-        
-        .panel { background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); overflow: hidden; display: flex; flex-direction: column; }
-        .table-panel { flex: 3; padding: 20px; overflow-y: auto; }
-        .map-panel { flex: 2; height: 100%; position: relative; }
-        
-        /* Table Styles */
-        table { width: 100%; border-collapse: collapse; font-size: 14px; }
-        th { text-align: left; padding: 12px; border-bottom: 2px solid #eee; color: #666; font-weight: 600; }
-        td { padding: 12px; border-bottom: 1px solid #eee; color: #333; vertical-align: middle; }
-        tr:hover { background: #f9f9f9; }
-        
-        .toolbar { margin-bottom: 15px; display: flex; gap: 10px; }
-        button { padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600; transition: 0.2s; }
-        
-        .btn-refresh { background: #00bcd4; color: white; }
-        .btn-csv { background: #fff; border: 1px solid #00bcd4; color: #00bcd4; }
-        .btn-clear { background: #ff4757; color: white; margin-left: auto; }
-
-        /* Action Buttons */
-        .btn-cancel { background: #e0e0e0; color: #333; }
-        .btn-cancel:hover { background: #ccc; }
-        
-        .btn-abort { background: #dc3545; color: white; animation: pulse 2s infinite; }
-        .btn-abort:hover { background: #c82333; }
-
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: #f4f6f8;
+            height: 100vh;
         }
 
-        #map-preview { height: 100%; width: 100%; }
-        
-        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
-        .status-PENDING { background: #fff3cd; color: #856404; }
-        .status-IN_PROGRESS { background: #cce5ff; color: #004085; }
-        .status-COMPLETED { background: #d4edda; color: #155724; }
-        .status-ABORTED { background: #f8d7da; color: #721c24; }
-        .status-CANCELLED { background: #e2e3e5; color: #383d41; }
-        .status-ABORT_SIGNAL { background: #dc3545; color: white; }
+        /* ================= LOGIN OVERLAY ================= */
+        #login-overlay {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #1f2933, #111827);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
 
+        .login-box {
+            background: white;
+            padding: 30px;
+            width: 320px;
+            border-radius: 10px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+            text-align: center;
+        }
+
+        .login-box h2 {
+            margin-bottom: 10px;
+            color: #1f2933;
+        }
+
+        .login-box p {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .login-box input {
+            width: 100%;
+            padding: 10px;
+            font-size: 14px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            margin-bottom: 15px;
+        }
+
+        .login-box button {
+            width: 100%;
+            padding: 10px;
+            background: #dc3545;
+            border: none;
+            color: white;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .login-box button:hover {
+            background: #c82333;
+        }
+
+        .login-error {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        /* ================= DASHBOARD ================= */
+        #dashboard {
+            display: none;
+            padding: 20px;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        h2 { margin: 0; color: #333; }
+
+        .dashboard-container {
+            display: flex;
+            gap: 20px;
+            height: calc(100vh - 90px);
+        }
+
+        .panel {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .table-panel { flex: 3; padding: 20px; overflow-y: auto; }
+        .map-panel { flex: 2; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            color: #666;
+            font-weight: 600;
+        }
+
+        tr:hover { background: #f9f9f9; }
+
+        .toolbar {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-refresh { background: #00bcd4; color: white; }
+        .btn-csv { border: 1px solid #00bcd4; background: white; color: #00bcd4; }
+        .btn-clear { background: #ff4757; color: white; margin-left: auto; }
+
+        .btn-cancel { background: #e0e0e0; }
+        .btn-abort { background: #dc3545; color: white; }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .status-PENDING { background: #fff3cd; }
+        .status-IN_PROGRESS { background: #cce5ff; }
+        .status-COMPLETED { background: #d4edda; }
+        .status-ABORT_SIGNAL { background: #f8d7da; }
+
+        #map-preview {
+            width: 100%;
+            height: 100%;
+        }
     </style>
 </head>
 <body>
 
+<!-- ================= LOGIN ================= -->
+<div id="login-overlay">
+    <div class="login-box">
+        <h2>Admin Access</h2>
+        <p>Enter password to access dashboard</p>
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="login()">LOGIN</button>
+        <div class="login-error" id="login-error">Incorrect password</div>
+    </div>
+</div>
+
+<!-- ================= DASHBOARD ================= -->
+<div id="dashboard">
     <div class="header">
         <div>
             <h2>Admin Dashboard</h2>
-            <div style="color: #666; font-size: 14px;">Flight Command Center</div>
-        </div>
-        <div>
-            <span style="font-size:12px; color:#888;">Active Monitoring</span>
+            <div style="color:#666; font-size:14px;">Flight Command Center</div>
         </div>
     </div>
 
     <div class="dashboard-container">
         <div class="panel table-panel">
             <div class="toolbar">
-                <button class="btn-refresh" onclick="location.reload()">Refresh Data</button>
-                <button class="btn-csv" onclick="exportCSV()">Export Logs</button>
-                <button class="btn-clear" onclick="clearHistory()">Clear History</button>
+                <button class="btn-refresh" onclick="location.reload()">Refresh</button>
+                <button class="btn-csv" onclick="exportCSV()">Export</button>
+                <button class="btn-clear" onclick="clearHistory()">Clear</button>
             </div>
+
             <table>
                 <thead>
                     <tr>
                         <th>Status</th>
                         <th>Action</th>
                         <th>Label</th>
-                        <th>Location (Lat/Lng)</th>
+                        <th>Lat / Lng</th>
                         <th>Phone</th>
                         <th>Time</th>
                     </tr>
                 </thead>
                 <tbody id="mission-table">
-                    <tr><td colspan="6" style="text-align:center;">Connecting to Live Database...</td></tr>
+                    <tr><td colspan="6">Loading…</td></tr>
                 </tbody>
             </table>
         </div>
@@ -96,139 +222,85 @@
             <div id="map-preview"></div>
         </div>
     </div>
+</div>
 
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, query, orderBy, onSnapshot, deleteDoc, updateDoc, doc, getDocs } 
-        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+<!-- ================= LOGIN SCRIPT ================= -->
+<script>
+    const ADMIN_PASSWORD = "1234"; // CHANGE THIS
 
-        // Firebase Config
-        const firebaseConfig = {
-            apiKey: "AIzaSyD3j2PpWAjlOQo-8x22EIECrAvbYfwtvng",
-            authDomain: "autonomous-ff-uav.firebaseapp.com",
-            projectId: "autonomous-ff-uav",
-            storageBucket: "autonomous-ff-uav.firebasestorage.app",
-            messagingSenderId: "701161445134",
-            appId: "1:701161445134:web:2179fffa8747061723695f"
-          };
+    function login() {
+        const input = document.getElementById("password").value;
+        const error = document.getElementById("login-error");
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        let allMissions = [];
+        if (input === ADMIN_PASSWORD) {
+            document.getElementById("login-overlay").style.display = "none";
+            document.getElementById("dashboard").style.display = "block";
+            loadDashboard();
+        } else {
+            error.style.display = "block";
+        }
+    }
+</script>
 
-        // Map Setup
-        const map = L.map('map-preview').setView([12.9141, 74.8560], 10);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-        let markers = [];
+<!-- ================= DASHBOARD SCRIPT ================= -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script type="module">
+    window.loadDashboard = function () {
 
-        // --- Real-time Listener ---
-        const q = query(collection(db, "missions"), orderBy("timestamp", "desc"));
-        
-        onSnapshot(q, (snapshot) => {
-            const tableBody = document.getElementById('mission-table');
-            tableBody.innerHTML = "";
-            
-            // Clear old markers
-            markers.forEach(m => map.removeLayer(m));
-            markers = [];
-            allMissions = [];
+        import("https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js").then(({ initializeApp }) => {
+            import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js").then(
+                ({ getFirestore, collection, query, orderBy, onSnapshot, updateDoc, doc, getDocs, deleteDoc }) => {
 
-            if (snapshot.empty) {
-                tableBody.innerHTML = "<tr><td colspan='6' style='text-align:center;'>No missions found.</td></tr>";
-                return;
-            }
+                const firebaseConfig = {
+                    apiKey: "AIzaSyD3j2PpWAjlOQo-8x22EIECrAvbYfwtvng",
+                    authDomain: "autonomous-ff-uav.firebaseapp.com",
+                    projectId: "autonomous-ff-uav",
+                };
 
-            snapshot.forEach((documentSnapshot) => {
-                const data = documentSnapshot.data();
-                const docId = documentSnapshot.id; // Needed for updates
-                allMissions.push(data);
-                
-                const date = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleTimeString() : "N/A";
+                const app = initializeApp(firebaseConfig);
+                const db = getFirestore(app);
 
-                // Determine Action Button
-                let actionBtn = "";
-                if (data.status === "PENDING") {
-                    actionBtn = `<button class="btn-cancel" onclick="updateStatus('${docId}', 'CANCELLED')">Cancel</button>`;
-                } else if (data.status === "IN_PROGRESS") {
-                    actionBtn = `<button class="btn-abort" onclick="updateStatus('${docId}', 'ABORT_SIGNAL')">⚠ ABORT</button>`;
-                } else {
-                    actionBtn = `<span style="color:#ccc;">-</span>`;
-                }
+                const map = L.map('map-preview').setView([12.9141, 74.8560], 10);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-                // Add Row
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td><span class="status-badge status-${data.status}">${data.status}</span></td>
-                    <td>${actionBtn}</td>
-                    <td><b>${data.label || 'Guest'}</b></td>
-                    <td>${data.lat.toFixed(5)}, ${data.lng.toFixed(5)}</td>
-                    <td>${data.phone}</td>
-                    <td>${date}</td>
-                `;
-                
-                // Clicking row pans map (but not when clicking the button)
-                row.addEventListener('click', (e) => {
-                    if(e.target.tagName !== 'BUTTON') map.setView([data.lat, data.lng], 15);
+                const q = query(collection(db, "missions"), orderBy("timestamp", "desc"));
+                const table = document.getElementById("mission-table");
+
+                onSnapshot(q, snap => {
+                    table.innerHTML = "";
+                    snap.forEach(docSnap => {
+                        const d = docSnap.data();
+                        const row = document.createElement("tr");
+                        row.innerHTML = `
+                            <td><span class="status-badge status-${d.status}">${d.status}</span></td>
+                            <td>${d.status === "IN_PROGRESS"
+                                ? `<button class="btn-abort" onclick="updateStatus('${docSnap.id}','ABORT_SIGNAL')">ABORT</button>`
+                                : "-"}</td>
+                            <td>${d.label}</td>
+                            <td>${d.lat.toFixed(4)}, ${d.lng.toFixed(4)}</td>
+                            <td>${d.phone}</td>
+                            <td>${d.timestamp?.toDate().toLocaleTimeString() || ""}</td>
+                        `;
+                        table.appendChild(row);
+                        L.marker([d.lat, d.lng]).addTo(map);
+                    });
                 });
 
-                tableBody.appendChild(row);
+                window.updateStatus = async (id, status) => {
+                    await updateDoc(doc(db, "missions", id), { status });
+                };
 
-                // Add Marker
-                let markerColor = data.status === 'IN_PROGRESS' ? 'red' : 'blue';
-                const marker = L.marker([data.lat, data.lng])
-                    .bindPopup(`<b>${data.label}</b><br>Status: ${data.status}`)
-                    .addTo(map);
-                markers.push(marker);
+                window.clearHistory = async () => {
+                    if (!confirm("Delete all missions?")) return;
+                    const s = await getDocs(collection(db, "missions"));
+                    s.forEach(d => deleteDoc(d.ref));
+                };
+
+                window.exportCSV = () => alert("CSV export placeholder");
             });
         });
+    };
+</script>
 
-        // --- Action Functions ---
-        
-        // Exposed function to update status
-        window.updateStatus = async function(docId, newStatus) {
-            let confirmMsg = "Confirm action?";
-            if(newStatus === 'ABORT_SIGNAL') confirmMsg = "⚠ EMERGENCY: Are you sure you want to ABORT the drone mid-flight?";
-            if(newStatus === 'CANCELLED') confirmMsg = "Cancel this pending request?";
-
-            if(confirm(confirmMsg)) {
-                try {
-                    const missionRef = doc(db, "missions", docId);
-                    await updateDoc(missionRef, {
-                        status: newStatus
-                    });
-                    // The UI updates automatically thanks to onSnapshot
-                } catch (e) {
-                    console.error("Error updating document: ", e);
-                    alert("Failed to update status.");
-                }
-            }
-        };
-
-        window.exportCSV = function() {
-            let csvContent = "data:text/csv;charset=utf-8,Status,Label,Lat,Lng,Phone,Time\n";
-            allMissions.forEach(m => {
-                const time = m.timestamp ? new Date(m.timestamp.toDate()).toISOString() : "";
-                csvContent += `${m.status},${m.label},${m.lat},${m.lng},${m.phone},${time}\n`;
-            });
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "missions_export.csv");
-            document.body.appendChild(link);
-            link.click();
-        };
-
-        window.clearHistory = async function() {
-            if(confirm("Are you sure you want to delete ALL mission history? This cannot be undone.")) {
-                const q = query(collection(db, "missions"));
-                const snapshot = await getDocs(q);
-                snapshot.forEach((doc) => {
-                    deleteDoc(doc.ref);
-                });
-            }
-        };
-
-    </script>
 </body>
 </html>
