@@ -659,7 +659,7 @@
     window.loadDashboard = function () {
         import("https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js").then(({ initializeApp }) => {
             import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js").then(
-                ({ getFirestore, collection, query, orderBy, onSnapshot, updateDoc, doc, getDocs, deleteDoc }) => {
+                ({ getFirestore, collection, query, orderBy, onSnapshot, updateDoc, doc, getDocs, deleteDoc, setDoc, serverTimestamp}) => {
 
                 const firebaseConfig = {
                     apiKey: "AIzaSyD3j2PpWAjlOQo-8x22EIECrAvbYfwtvng",
@@ -814,8 +814,28 @@
                     if (status === 'ABORT_SIGNAL') {
                         if (!confirm('Are you sure you want to abort this mission?')) return;
                     }
-                    await updateDoc(doc(db, "missions", id), { status });
+                
+                    const missionRef = doc(db, "missions", id);
+                    const snap = await getDoc(missionRef);
+                    const mission = snap.data();
+                
+                    // 1️⃣ Update mission status
+                    await updateDoc(missionRef, { status });
+                
+                    // 2️⃣ If selected, send command to drone
+                    if (status === "IN_PROGRESS") {
+                        await setDoc(doc(db, "drone_commands", "drone_01"), {
+                            command: "GOTO",
+                            mission_id: id,
+                            target: {
+                                lat: mission.lat,
+                                lng: mission.lng
+                            },
+                            issued_at: serverTimestamp()
+                        });
+                    }
                 };
+                
 
                 window.clearHistory = async () => {
                     if (!confirm("Delete all missions?")) return;

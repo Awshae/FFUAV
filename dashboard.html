@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>FFUAV Live Drone Dashboard</title>
+<title>FFUAV Live Operations Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
@@ -10,94 +10,90 @@
 
 <style>
 :root {
-    --bg: #0f172a;
-    --card: #111827;
-    --accent: #22c55e;
-    --danger: #dc2626;
-    --warn: #f59e0b;
-    --text: #e5e7eb;
+  --bg:#020617;
+  --card:#0f172a;
+  --border:#1e293b;
+  --ok:#22c55e;
+  --warn:#f59e0b;
+  --danger:#dc2626;
+  --text:#e5e7eb;
+  --muted:#9ca3af;
 }
 
 body {
-    margin: 0;
-    font-family: system-ui, sans-serif;
-    background: var(--bg);
-    color: var(--text);
+  margin:0;
+  font-family:system-ui,sans-serif;
+  background:var(--bg);
+  color:var(--text);
 }
 
 header {
-    padding: 16px 24px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #020617;
-    border-bottom: 1px solid #1f2937;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:14px 22px;
+  border-bottom:1px solid var(--border);
 }
 
 header h1 {
-    font-size: 18px;
-    margin: 0;
+  font-size:18px;
+  margin:0;
 }
 
-.status {
-    padding: 6px 12px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 700;
+.badge {
+  padding:6px 12px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:700;
 }
-
-.status.IDLE { background: #374151; }
-.status.EN_ROUTE { background: #2563eb; }
-.status.DROPPING { background: var(--accent); }
-.status.EMERGENCY { background: var(--danger); }
 
 .container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    padding: 16px;
-    height: calc(100vh - 70px);
+  display:grid;
+  grid-template-columns: 420px 1fr;
+  height: calc(100vh - 60px);
+}
+
+.sidebar {
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
 }
 
 .card {
-    background: var(--card);
-    border-radius: 12px;
-    padding: 16px;
+  background:var(--card);
+  border-radius:12px;
+  padding:14px;
+  border:1px solid var(--border);
 }
 
 .card h3 {
-    margin: 0 0 12px;
-    font-size: 14px;
-    color: #9ca3af;
-}
-
-.metric-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+  margin:0 0 10px;
+  font-size:13px;
+  color:var(--muted);
 }
 
 .metric {
-    background: #020617;
-    padding: 12px;
-    border-radius: 8px;
+  display:flex;
+  justify-content:space-between;
+  margin:6px 0;
+  font-size:14px;
 }
 
-.metric span {
-    font-size: 11px;
-    color: #9ca3af;
+.alert {
+  padding:10px;
+  border-radius:8px;
+  font-size:13px;
+  font-weight:600;
 }
 
-.metric strong {
-    display: block;
-    font-size: 20px;
-    margin-top: 4px;
-}
+.alert.ok { background:rgba(34,197,94,0.15); color:var(--ok); }
+.alert.warn { background:rgba(245,158,11,0.15); color:var(--warn); }
+.alert.danger { background:rgba(220,38,38,0.15); color:var(--danger); }
 
 #map {
-    width: 100%;
-    height: 100%;
-    border-radius: 12px;
+  width:100%;
+  height:100%;
 }
 </style>
 </head>
@@ -105,78 +101,113 @@ header h1 {
 <body>
 
 <header>
-    <h1><i class="fas fa-helicopter"></i> FFUAV Live Drone Dashboard</h1>
-    <span id="drone-status" class="status IDLE">IDLE</span>
+  <h1><i class="fas fa-helicopter"></i> FFUAV Operations Dashboard</h1>
+  <span id="statusBadge" class="badge">UNKNOWN</span>
 </header>
 
 <div class="container">
-    <!-- TELEMETRY -->
+
+  <div class="sidebar">
+
     <div class="card">
-        <h3>Drone Telemetry</h3>
-        <div class="metric-grid">
-            <div class="metric">
-                <span>Battery</span>
-                <strong id="battery">--%</strong>
-            </div>
-            <div class="metric">
-                <span>Altitude</span>
-                <strong id="altitude">-- m</strong>
-            </div>
-            <div class="metric">
-                <span>Speed</span>
-                <strong id="speed">-- m/s</strong>
-            </div>
-            <div class="metric">
-                <span>Temperature</span>
-                <strong id="temp">-- °C</strong>
-            </div>
-        </div>
+      <h3>Telemetry</h3>
+      <div class="metric"><span>Battery</span><strong id="battery">--%</strong></div>
+      <div class="metric"><span>Altitude</span><strong id="altitude">-- m</strong></div>
+      <div class="metric"><span>Speed</span><strong id="speed">-- m/s</strong></div>
+      <div class="metric"><span>Temperature</span><strong id="temp">-- °C</strong></div>
+      <div class="metric"><span>Last Update</span><strong id="lastUpdate">--</strong></div>
     </div>
 
-    <!-- MAP -->
     <div class="card">
-        <h3>Live Position</h3>
-        <div id="map"></div>
+      <h3>Health Alerts</h3>
+      <div id="alerts"></div>
     </div>
+
+    <div class="card">
+      <h3>Fire Detection</h3>
+      <div class="metric"><span>Detected</span><strong id="fireDetected">NO</strong></div>
+      <div class="metric"><span>Severity</span><strong id="fireSeverity">-</strong></div>
+    </div>
+
+  </div>
+
+  <div id="map"></div>
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, doc, onSnapshot } from
+import { getFirestore, doc, onSnapshot, updateDoc } from
 "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyD3j2PpWAjlOQo-8x22EIECrAvbYfwtvng",
-    authDomain: "autonomous-ff-uav.firebaseapp.com",
-    projectId: "autonomous-ff-uav"
+  apiKey: "AIzaSyD3j2PpWAjlOQo-8x22EIECrAvbYfwtvng",
+  authDomain: "autonomous-ff-uav.firebaseapp.com",
+  projectId: "autonomous-ff-uav"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const map = L.map('map').setView([12.9141, 74.8560], 12);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-let marker = L.marker([12.9141, 74.8560]).addTo(map);
+const map = L.map("map").setView([12.9141,74.8560],12);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
-const droneRef = doc(db, "drone_status", "drone_01");
+let marker = L.marker([12.9141,74.8560]).addTo(map);
+let pathLine = L.polyline([], { color:"#22c55e" }).addTo(map);
 
-onSnapshot(droneRef, snap => {
-    if (!snap.exists()) return;
-    const d = snap.data();
+const ref = doc(db,"drone_status","drone_01");
 
-    document.getElementById("battery").textContent = d.battery + "%";
-    document.getElementById("altitude").textContent = d.altitude + " m";
-    document.getElementById("speed").textContent = d.speed + " m/s";
-    document.getElementById("temp").textContent = d.temperature + " °C";
+onSnapshot(ref, async snap => {
+  if(!snap.exists()) return;
+  const d = snap.data();
 
-    const statusEl = document.getElementById("drone-status");
-    statusEl.textContent = d.status;
-    statusEl.className = `status ${d.status}`;
+  // UI
+  battery.textContent = d.battery + "%";
+  altitude.textContent = d.altitude + " m";
+  speed.textContent = d.speed + " m/s";
+  temp.textContent = d.temperature + " °C";
+  fireDetected.textContent = d.fire_detected ? "YES" : "NO";
+  fireSeverity.textContent = d.fire_severity || "-";
 
-    marker.setLatLng([d.lat, d.lng]);
-    map.panTo([d.lat, d.lng], { animate: true, duration: 0.5 });
+  const now = Date.now();
+  const last = d.last_update?.toDate()?.getTime() || 0;
+  const diff = ((now - last)/1000).toFixed(1);
+  lastUpdate.textContent = diff + "s ago";
+
+  // Status badge
+  statusBadge.textContent = d.status;
+  statusBadge.style.background =
+    d.status === "EMERGENCY" ? "var(--danger)" :
+    d.status === "EN_ROUTE" ? "#2563eb" :
+    "var(--border)";
+
+  // Alerts
+  alerts.innerHTML = "";
+
+  if (d.battery < 15)
+    alerts.innerHTML += `<div class="alert danger">Battery critical</div>`;
+  else if (d.battery < 30)
+    alerts.innerHTML += `<div class="alert warn">Battery low</div>`;
+
+  if (d.temperature > 75)
+    alerts.innerHTML += `<div class="alert danger">Overheating</div>`;
+
+  if (diff > 10)
+    alerts.innerHTML += `<div class="alert danger">Signal lost</div>`;
+  else
+    alerts.innerHTML += `<div class="alert ok">Signal OK</div>`;
+
+  // Map
+  marker.setLatLng([d.lat,d.lng]);
+  map.panTo([d.lat,d.lng], { animate:true });
+
+  const newPath = d.path || [];
+  newPath.push({ lat:d.lat, lng:d.lng });
+
+  pathLine.setLatLngs(newPath.map(p => [p.lat,p.lng]));
+
+  await updateDoc(ref, { path:newPath.slice(-50) });
 });
 </script>
 
