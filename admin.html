@@ -495,7 +495,7 @@
                 id="password" 
                 placeholder="Enter Password"
                 autocomplete="off">
-            <button type="button" onclick="sendCoordinates()">
+            <button type="button" onclick="login(this)">
                 <i class="fas fa-sign-in-alt"></i>
                 Login
             </button>
@@ -586,34 +586,37 @@
 <!-- ================= SCRIPTS ================= -->
 <script>
     const ADMIN_PASSWORD = "1234";
-    
-    function login() {
+
+    function login(btn) {
         const input = document.getElementById("password").value;
         const error = document.getElementById("login-error");
-        const btn = event.target;
-        
+
         if (!input) {
             error.style.display = "block";
+            error.innerText = "Enter password";
             return;
         }
 
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-icon"></span> Verifying...';
 
-        // Simulate processing
         setTimeout(() => {
             if (input === ADMIN_PASSWORD) {
                 sessionStorage.setItem('ffuav_admin_auth', 'true');
                 error.style.display = "none";
+
                 document.getElementById("login-overlay").style.display = "none";
                 document.getElementById("dashboard").style.display = "block";
+
                 loadDashboard();
             } else {
                 error.style.display = "block";
+                error.innerText = "Incorrect password";
+
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i>Login';
+                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
             }
-        }, 500);
+        }, 400);
     }
 
     window.addEventListener('load', () => {
