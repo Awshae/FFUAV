@@ -5,7 +5,7 @@
 <title>FFUAV Live Operations Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 
 <style>
@@ -134,14 +134,15 @@ header h1 {
   <div id="map"></div>
 </div>
 
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getFirestore, doc, onSnapshot } from
   "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
   
-  /* ---------------- Firebase ---------------- */
+  mapboxgl.accessToken = "pk.eyJ1IjoiZmZ1YXYiLCJhIjoiY21sMGp4YmZxMGIyajNncXU4eHZ5b2wybSJ9.AEhvCSVnCw61znFwUnE4gg";
+  
   const firebaseConfig = {
     apiKey: "AIzaSyD3j2PpWAjlOQo-8x22EIECrAvbYfwtvng",
     authDomain: "autonomous-ff-uav.firebaseapp.com",
@@ -151,81 +152,83 @@ header h1 {
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   
-  /* ---------------- Map ---------------- */
-  const map = L.map("map", {
-    zoomControl: false,
-    inertia: true
-  }).setView([12.9141, 74.8560], 16);
-  
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19
-  }).addTo(map);
-  
-  L.control.zoom({ position: "bottomright" }).addTo(map);
-  
-  const droneIcon = L.divIcon({
-    html: `<i class="fas fa-drone" style="color:#22c55e;font-size:20px"></i>`,
-    iconSize: [20, 20],
-    className: ""
+  // ---------------- MAP ----------------
+  const map = new mapboxgl.Map({
+    container: "map",
+    style: "mapbox://styles/mapbox/dark-v11",
+    center: [74.8560, 12.9141],
+    zoom: 13
   });
   
-  let marker = L.marker([12.9141, 74.8560], { icon: droneIcon }).addTo(map);
-  let pathLine = L.polyline([], { color:"#22c55e", weight:3 }).addTo(map);
+  let pathCoords = [];
   
-  let path = [];
-  let firstFix = true;
+  map.on("load", () => {
+    map.addSource("dronePath", {
+      type: "geojson",
+      data: {
+        type: "Feature",
+        geometry: { type: "LineString", coordinates: [] }
+      }
+    });
   
-  /* ---------------- Firestore ---------------- */
+    map.addLayer({
+      id: "dronePathLayer",
+      type: "line",
+      source: "dronePath",
+      paint: {
+        "line-color": "#22c55e",
+        "line-width": 4
+      }
+    });
+  });
+  
+  // Drone marker
+  const marker = new mapboxgl.Marker({ color: "#22c55e" })
+    .setLngLat([74.8560, 12.9141])
+    .addTo(map);
+  
+  // ---------------- FIRESTORE ----------------
   const ref = doc(db, "drone_status", "drone_01");
   
   onSnapshot(ref, snap => {
     if (!snap.exists()) return;
     const d = snap.data();
   
-    /* ---------- Telemetry ---------- */
-    battery.textContent = d.battery?.toFixed(1) + "%";
-    altitude.textContent = d.altitude?.toFixed(2) + " m";
-    speed.textContent = d.speed?.toFixed(2) + " m/s";
-    temp.textContent = (d.temperature ?? "--") + " °C";
-  
-    const last = d.last_update?.toDate()?.getTime() || 0;
-    const diff = ((Date.now() - last) / 1000).toFixed(1);
-    lastUpdate.textContent = diff + " s ago";
-  
-    /* ---------- Status ---------- */
-    statusBadge.textContent = d.status || "UNKNOWN";
-    statusBadge.style.background =
-      d.status === "EMERGENCY" ? "var(--danger)" :
-      d.status === "EN_ROUTE" ? "#2563eb" :
-      "var(--border)";
-  
-    /* ---------- Alerts ---------- */
-    alerts.innerHTML = "";
-  
-    if (d.battery < 20)
-      alerts.innerHTML += `<div class="alert warn">Low Battery</div>`;
-  
-    if (diff > 5)
-      alerts.innerHTML += `<div class="alert danger">Telemetry Lost</div>`;
-    else
-      alerts.innerHTML += `<div class="alert ok">Telemetry OK</div>`;
-  
-    /* ---------- Live Map ---------- */
+    // VALIDATION (CRITICAL)
     if (typeof d.lat !== "number" || typeof d.lng !== "number") return;
   
-    const pos = [d.lat, d.lng];
-    marker.setLatLng(pos);
+    // UI
+    battery.textContent = `${d.battery ?? "--"}%`;
+    altitude.textContent = `${d.altitude ?? "--"} m`;
+    speed.textContent = `${d.speed ?? "--"} m/s`;
+    temp.textContent = `${d.temperature ?? "--"} °C`;
   
-    path.push(pos);
-    if (path.length > 500) path.shift();
-    pathLine.setLatLngs(path);
+    // Status
+    statusBadge.textContent = d.status ?? "UNKNOWN";
   
-    if (firstFix) {
-      map.setView(pos, 17);
-      firstFix = false;
-    }
+    // Move marker
+    marker.setLngLat([d.lng, d.lat]);
+    map.easeTo({ center: [d.lng, d.lat], duration: 500 });
+  
+    // Path
+    pathCoords.push([d.lng, d.lat]);
+    if (pathCoords.length > 200) pathCoords.shift();
+  
+    map.getSource("dronePath").setData({
+      type: "Feature",
+      geometry: {
+        type: "LineString",
+        coordinates: pathCoords
+      }
+    });
+  
+    // Alerts
+    alerts.innerHTML = "";
+    if (d.battery < 20)
+      alerts.innerHTML += `<div class="alert danger">Battery Critical</div>`;
   });
-  </script>  
+  </script>
+   
 
 </body>
 </html>
