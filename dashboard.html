@@ -137,79 +137,95 @@ header h1 {
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, doc, onSnapshot, updateDoc } from
-"https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyD3j2PpWAjlOQo-8x22EIECrAvbYfwtvng",
-  authDomain: "autonomous-ff-uav.firebaseapp.com",
-  projectId: "autonomous-ff-uav"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-const map = L.map("map").setView([12.9141,74.8560],12);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
-
-let marker = L.marker([12.9141,74.8560]).addTo(map);
-let pathLine = L.polyline([], { color:"#22c55e" }).addTo(map);
-
-const ref = doc(db,"drone_status","drone_01");
-
-onSnapshot(ref, async snap => {
-  if(!snap.exists()) return;
-  const d = snap.data();
-
-  // UI
-  battery.textContent = d.battery + "%";
-  altitude.textContent = d.altitude + " m";
-  speed.textContent = d.speed + " m/s";
-  temp.textContent = d.temperature + " °C";
-  fireDetected.textContent = d.fire_detected ? "YES" : "NO";
-  fireSeverity.textContent = d.fire_severity || "-";
-
-  const now = Date.now();
-  const last = d.last_update?.toDate()?.getTime() || 0;
-  const diff = ((now - last)/1000).toFixed(1);
-  lastUpdate.textContent = diff + "s ago";
-
-  // Status badge
-  statusBadge.textContent = d.status;
-  statusBadge.style.background =
-    d.status === "EMERGENCY" ? "var(--danger)" :
-    d.status === "EN_ROUTE" ? "#2563eb" :
-    "var(--border)";
-
-  // Alerts
-  alerts.innerHTML = "";
-
-  if (d.battery < 15)
-    alerts.innerHTML += `<div class="alert danger">Battery critical</div>`;
-  else if (d.battery < 30)
-    alerts.innerHTML += `<div class="alert warn">Battery low</div>`;
-
-  if (d.temperature > 75)
-    alerts.innerHTML += `<div class="alert danger">Overheating</div>`;
-
-  if (diff > 10)
-    alerts.innerHTML += `<div class="alert danger">Signal lost</div>`;
-  else
-    alerts.innerHTML += `<div class="alert ok">Signal OK</div>`;
-
-  // Map
-  marker.setLatLng([d.lat,d.lng]);
-  map.panTo([d.lat,d.lng], { animate:true });
-
-  const newPath = d.path || [];
-  newPath.push({ lat:d.lat, lng:d.lng });
-
-  pathLine.setLatLngs(newPath.map(p => [p.lat,p.lng]));
-
-  await updateDoc(ref, { path:newPath.slice(-50) });
-});
-</script>
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getFirestore, doc, onSnapshot } from
+  "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  
+  /* ---------------- Firebase ---------------- */
+  const firebaseConfig = {
+    apiKey: "AIzaSyD3j2PpWAjlOQo-8x22EIECrAvbYfwtvng",
+    authDomain: "autonomous-ff-uav.firebaseapp.com",
+    projectId: "autonomous-ff-uav"
+  };
+  
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  
+  /* ---------------- Map ---------------- */
+  const map = L.map("map", {
+    zoomControl: false,
+    inertia: true
+  }).setView([12.9141, 74.8560], 16);
+  
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19
+  }).addTo(map);
+  
+  L.control.zoom({ position: "bottomright" }).addTo(map);
+  
+  const droneIcon = L.divIcon({
+    html: `<i class="fas fa-drone" style="color:#22c55e;font-size:20px"></i>`,
+    iconSize: [20, 20],
+    className: ""
+  });
+  
+  let marker = L.marker([12.9141, 74.8560], { icon: droneIcon }).addTo(map);
+  let pathLine = L.polyline([], { color:"#22c55e", weight:3 }).addTo(map);
+  
+  let path = [];
+  let firstFix = true;
+  
+  /* ---------------- Firestore ---------------- */
+  const ref = doc(db, "drone_status", "drone_01");
+  
+  onSnapshot(ref, snap => {
+    if (!snap.exists()) return;
+    const d = snap.data();
+  
+    /* ---------- Telemetry ---------- */
+    battery.textContent = d.battery?.toFixed(1) + "%";
+    altitude.textContent = d.altitude?.toFixed(2) + " m";
+    speed.textContent = d.speed?.toFixed(2) + " m/s";
+    temp.textContent = (d.temperature ?? "--") + " °C";
+  
+    const last = d.last_update?.toDate()?.getTime() || 0;
+    const diff = ((Date.now() - last) / 1000).toFixed(1);
+    lastUpdate.textContent = diff + " s ago";
+  
+    /* ---------- Status ---------- */
+    statusBadge.textContent = d.status || "UNKNOWN";
+    statusBadge.style.background =
+      d.status === "EMERGENCY" ? "var(--danger)" :
+      d.status === "EN_ROUTE" ? "#2563eb" :
+      "var(--border)";
+  
+    /* ---------- Alerts ---------- */
+    alerts.innerHTML = "";
+  
+    if (d.battery < 20)
+      alerts.innerHTML += `<div class="alert warn">Low Battery</div>`;
+  
+    if (diff > 5)
+      alerts.innerHTML += `<div class="alert danger">Telemetry Lost</div>`;
+    else
+      alerts.innerHTML += `<div class="alert ok">Telemetry OK</div>`;
+  
+    /* ---------- Live Map ---------- */
+    if (typeof d.lat !== "number" || typeof d.lng !== "number") return;
+  
+    const pos = [d.lat, d.lng];
+    marker.setLatLng(pos);
+  
+    path.push(pos);
+    if (path.length > 500) path.shift();
+    pathLine.setLatLngs(path);
+  
+    if (firstFix) {
+      map.setView(pos, 17);
+      firstFix = false;
+    }
+  });
+  </script>  
 
 </body>
 </html>
