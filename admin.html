@@ -424,9 +424,25 @@
                     
                     droneMarker.setLatLng(newPos);
                     
+                    // Only add to path if the new point is reasonably close to the last one (prevents 0,0 jumps)
+                // or if the path is empty.
+                if (flightPath.length === 0) {
                     flightPath.push(newPos);
-                    if (flightPath.length > 500) flightPath.shift();
-                    polyline.setLatLngs(flightPath);
+                } else {
+                    const lastPos = flightPath[flightPath.length - 1];
+                    const dist = map.distance(lastPos, newPos);
+                    
+                    // If distance is less than 50km, it's a valid move. 
+                    // If it's huge, it's a teleport glitch - clear path and start new.
+                    if (dist < 50000) {
+                        flightPath.push(newPos);
+                    } else {
+                        flightPath = [newPos]; // Reset path on teleport
+                    }
+                }
+
+                if (flightPath.length > 500) flightPath.shift();
+                polyline.setLatLngs(flightPath);
 
                     // Update Rotation (Heading)
                     // Note: Leaflet divIcons don't rotate easily, we rotate the inner img
