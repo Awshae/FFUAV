@@ -1,215 +1,96 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>FFUAV Live Operations Dashboard</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
-
-<style>
-:root {
-  --bg:#020617;
-  --card:#0f172a;
-  --border:#1e293b;
-  --ok:#22c55e;
-  --warn:#f59e0b;
-  --danger:#dc2626;
-  --text:#e5e7eb;
-  --muted:#9ca3af;
-}
-
-body {
-  margin:0;
-  font-family:system-ui,sans-serif;
-  background:var(--bg);
-  color:var(--text);
-}
-
-header {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:14px 22px;
-  border-bottom:1px solid var(--border);
-}
-
-header h1 {
-  font-size:18px;
-  margin:0;
-}
-
-.badge {
-  padding:6px 12px;
-  border-radius:999px;
-  font-size:12px;
-  font-weight:700;
-}
-
-.container {
-  display:grid;
-  grid-template-columns: 420px 1fr;
-  height: calc(100vh - 60px);
-}
-
-.sidebar {
-  padding:16px;
-  display:flex;
-  flex-direction:column;
-  gap:14px;
-}
-
-.card {
-  background:var(--card);
-  border-radius:12px;
-  padding:14px;
-  border:1px solid var(--border);
-}
-
-.card h3 {
-  margin:0 0 10px;
-  font-size:13px;
-  color:var(--muted);
-}
-
-.metric {
-  display:flex;
-  justify-content:space-between;
-  margin:6px 0;
-  font-size:14px;
-}
-
-.alert {
-  padding:10px;
-  border-radius:8px;
-  font-size:13px;
-  font-weight:600;
-}
-
-.alert.ok { background:rgba(34,197,94,0.15); color:var(--ok); }
-.alert.warn { background:rgba(245,158,11,0.15); color:var(--warn); }
-.alert.danger { background:rgba(220,38,38,0.15); color:var(--danger); }
-
-#map {
-  width:100%;
-  height:100%;
-}
-</style>
-</head>
-
-<body>
-
-<header>
-  <h1><i class="fas fa-helicopter"></i> FFUAV Operations Dashboard</h1>
-  <span id="statusBadge" class="badge">UNKNOWN</span>
-</header>
-
-<div class="container">
-
-  <div class="sidebar">
-
-    <div class="card">
-      <h3>Telemetry</h3>
-      <div class="metric"><span>Battery</span><strong id="battery">--%</strong></div>
-      <div class="metric"><span>Altitude</span><strong id="altitude">-- m</strong></div>
-      <div class="metric"><span>Speed</span><strong id="speed">-- m/s</strong></div>
-      <div class="metric"><span>Temperature</span><strong id="temp">-- °C</strong></div>
-      <div class="metric"><span>Last Update</span><strong id="lastUpdate">--</strong></div>
-    </div>
-
-    <div class="card">
-      <h3>Health Alerts</h3>
-      <div id="alerts"></div>
-    </div>
-
-    <div class="card">
-      <h3>Fire Detection</h3>
-      <div class="metric"><span>Detected</span><strong id="fireDetected">NO</strong></div>
-      <div class="metric"><span>Severity</span><strong id="fireSeverity">-</strong></div>
-    </div>
-
-  </div>
-
-  <div id="map"></div>
-</div>
-
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, doc, onSnapshot, updateDoc } from
-"https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyD3j2PpWAjlOQo-8x22EIECrAvbYfwtvng",
-  authDomain: "autonomous-ff-uav.firebaseapp.com",
-  projectId: "autonomous-ff-uav"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-const map = L.map("map").setView([12.9141,74.8560],12);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
-
-let marker = L.marker([12.9141,74.8560]).addTo(map);
-let pathLine = L.polyline([], { color:"#22c55e" }).addTo(map);
-
-const ref = doc(db,"drone_status","drone_01");
-
-onSnapshot(ref, async snap => {
-  if(!snap.exists()) return;
-  const d = snap.data();
-
-  // UI
-  battery.textContent = d.battery + "%";
-  altitude.textContent = d.altitude + " m";
-  speed.textContent = d.speed + " m/s";
-  temp.textContent = d.temperature + " °C";
-  fireDetected.textContent = d.fire_detected ? "YES" : "NO";
-  fireSeverity.textContent = d.fire_severity || "-";
-
-  const now = Date.now();
-  const last = d.last_update?.toDate()?.getTime() || 0;
-  const diff = ((now - last)/1000).toFixed(1);
-  lastUpdate.textContent = diff + "s ago";
-
-  // Status badge
-  statusBadge.textContent = d.status;
-  statusBadge.style.background =
-    d.status === "EMERGENCY" ? "var(--danger)" :
-    d.status === "EN_ROUTE" ? "#2563eb" :
-    "var(--border)";
-
-  // Alerts
-  alerts.innerHTML = "";
-
-  if (d.battery < 15)
-    alerts.innerHTML += `<div class="alert danger">Battery critical</div>`;
-  else if (d.battery < 30)
-    alerts.innerHTML += `<div class="alert warn">Battery low</div>`;
-
-  if (d.temperature > 75)
-    alerts.innerHTML += `<div class="alert danger">Overheating</div>`;
-
-  if (diff > 10)
-    alerts.innerHTML += `<div class="alert danger">Signal lost</div>`;
-  else
-    alerts.innerHTML += `<div class="alert ok">Signal OK</div>`;
-
-  // Map
-  marker.setLatLng([d.lat,d.lng]);
-  map.panTo([d.lat,d.lng], { animate:true });
-
-  const newPath = d.path || [];
-  newPath.push({ lat:d.lat, lng:d.lng });
-
-  pathLine.setLatLngs(newPath.map(p => [p.lat,p.lng]));
-
-  <!--await updateDoc(ref, { path:newPath.slice(-50) });-->
-});
-</script>
-
-</body>
-</html>
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getFirestore, doc, onSnapshot } 
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  
+  const firebaseConfig = {
+    apiKey: "AIzaSyD3j2PpWAjlOQo-8x22EIECrAvbYfwtvng",
+    authDomain: "autonomous-ff-uav.firebaseapp.com",
+    projectId: "autonomous-ff-uav"
+  };
+  
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  
+  // Initialize Map
+  const map = L.map("map").setView([12.9141, 74.8560], 18); // Zoomed in closer for drone view
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
+  }).addTo(map);
+  
+  // Drone Marker Icon
+  const droneIcon = L.divIcon({
+      html: '<i class="fas fa-location-arrow" style="font-size: 24px; color: #3b82f6; transform: rotate(-45deg); filter: drop-shadow(0 0 4px rgba(0,0,0,0.5));"></i>',
+      className: 'drone-icon',
+      iconSize: [24, 24],
+      iconAnchor: [12, 12]
+  });
+  
+  let marker = L.marker([12.9141, 74.8560], {icon: droneIcon}).addTo(map);
+  let pathLine = L.polyline([], { color: "#22c55e", weight: 3, opacity: 0.8 }).addTo(map);
+  
+  // Local path storage (clears on page refresh)
+  const localPath = [];
+  
+  const ref = doc(db, "drone_status", "drone_01");
+  
+  onSnapshot(ref, (snap) => {
+    if (!snap.exists()) return;
+    const d = snap.data();
+  
+    // 1. Update UI Text
+    document.getElementById('battery').textContent = (d.battery || 0) + "%";
+    document.getElementById('altitude').textContent = (d.altitude || 0) + " m";
+    document.getElementById('speed').textContent = (d.speed || 0) + " m/s";
+    document.getElementById('temp').textContent = (d.temperature || "--") + " °C";
+    document.getElementById('fireDetected').textContent = d.fire_detected ? "YES" : "NO";
+    
+    const sevEl = document.getElementById('fireSeverity');
+    sevEl.textContent = d.fire_severity || "-";
+    if(d.fire_detected) {
+        sevEl.style.color = "var(--danger)";
+        document.getElementById('fireDetected').style.color = "var(--danger)";
+    } else {
+        sevEl.style.color = "var(--text)";
+        document.getElementById('fireDetected').style.color = "var(--ok)";
+    }
+  
+    // 2. Time Diff Calculation
+    const now = Date.now();
+    const last = d.last_update?.toDate()?.getTime() || now;
+    const diff = Math.max(0, (now - last) / 1000).toFixed(1);
+    document.getElementById('lastUpdate').textContent = diff + "s ago";
+  
+    // 3. Status Badge & Health Alerts
+    const statusBadge = document.getElementById('statusBadge');
+    statusBadge.textContent = d.status || "OFFLINE";
+    
+    if (d.status === "FLYING") statusBadge.style.background = "#2563eb";
+    else if (d.status === "EMERGENCY") statusBadge.style.background = "var(--danger)";
+    else statusBadge.style.background = "var(--border)";
+  
+    const alerts = document.getElementById('alerts');
+    alerts.innerHTML = "";
+    
+    if (d.battery < 20) alerts.innerHTML += `<div class="alert danger">Low Battery</div>`;
+    if (diff > 5.0) alerts.innerHTML += `<div class="alert warn">Weak Signal</div>`;
+    if (d.fire_detected) alerts.innerHTML += `<div class="alert danger">FIRE DETECTED</div>`;
+    if (alerts.innerHTML === "") alerts.innerHTML = `<div class="alert ok">Systems Nominal</div>`;
+  
+    // 4. Map Updates (Only if coordinates exist)
+    if (d.lat && d.lng) {
+        const newLatLng = [d.lat, d.lng];
+        
+        // Move Marker
+        marker.setLatLng(newLatLng);
+        
+        // Center map on drone (optional: remove if you want manual pan)
+        map.panTo(newLatLng, { animate: true, duration: 0.5 });
+  
+        // Add to path
+        localPath.push(newLatLng);
+        pathLine.setLatLngs(localPath);
+    }
+  });
+  </script>
