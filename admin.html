@@ -12,13 +12,13 @@
     <style>
         /* --- CORE THEME --- */
         :root {
-            --primary: #1e293b;   /* Dark Sidebar */
-            --secondary: #0f172a; /* Darker Header */
-            --accent: #2563eb;    /* Bright Blue */
-            --fire: #ef4444;      /* Red */
-            --success: #10b981;   /* Green */
-            --warning: #f59e0b;   /* Orange */
-            --text: #f8fafc;      /* White Text */
+            --primary: #1e293b;
+            --secondary: #0f172a;
+            --accent: #2563eb;
+            --fire: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --text: #f8fafc;
             --text-muted: #94a3b8;
             --border: #334155;
         }
@@ -71,7 +71,7 @@
             flex: 1; display: grid; grid-template-columns: 380px 1fr; overflow: hidden;
         }
 
-        /* --- LEFT PANEL (MISSIONS) --- */
+        /* --- SIDEBAR --- */
         .sidebar {
             background: var(--primary); border-right: 1px solid var(--border);
             display: flex; flex-direction: column;
@@ -85,7 +85,6 @@
             letter-spacing: 1px; color: var(--text-muted);
         }
 
-        /* TOOLBAR BUTTONS */
         .tool-btn {
             background: transparent; border: 1px solid var(--border);
             color: var(--text-muted); padding: 4px 8px; border-radius: 4px;
@@ -120,11 +119,10 @@
         .btn-approve { background: var(--success); color: #000; }
         .btn-abort { background: var(--secondary); border: 1px solid var(--fire); color: var(--fire); }
 
-        /* --- RIGHT PANEL (MAP) --- */
+        /* --- MAP & TELEMETRY --- */
         .map-wrapper { position: relative; width: 100%; height: 100%; }
-        #map { width: 100%; height: 100%; background: #e5e7eb; } /* Light background for loading */
+        #map { width: 100%; height: 100%; background: #e5e7eb; } 
 
-        /* --- TELEMETRY OVERLAY --- */
         .telemetry-card {
             position: absolute; top: 20px; right: 20px; z-index: 1000;
             background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px);
@@ -151,10 +149,13 @@
         .battery-fill { height: 100%; background: var(--success); width: 0%; transition: width 0.5s; }
 
         /* --- MARKER STYLES --- */
-        .custom-marker { transition: transform 0.3s; }
-        .drone-marker-icon { 
-            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4)); 
-            transition: all 0.5s linear;
+        .drone-marker-icon {
+            transition: all 0.3s linear;
+        }
+        .drone-img {
+            width: 40px;
+            height: 40px;
+            filter: drop-shadow(0 5px 10px rgba(0,0,0,0.4));
         }
 
         /* --- RESPONSIVE --- */
@@ -277,30 +278,31 @@
             const app = initializeApp(firebaseConfig);
             const db = getFirestore(app);
 
-            // 1. MAP SETUP (NORMAL COLOR - OpenStreetMap)
+            // 1. MAP SETUP
             const map = L.map('map').setView([12.9141, 74.8560], 14);
             
-            // Standard OSM Layer (Bright/Color)
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; OpenStreetMap contributors',
                 maxZoom: 19
             }).addTo(map);
 
-            // Layer Groups
             const missionLayer = L.layerGroup().addTo(map);
             const droneLayer = L.layerGroup().addTo(map);
             const pathLayer = L.layerGroup().addTo(map);
 
-            // Drone Icon (Blue Arrow)
+            // ----------------------------------------------------
+            // NEW DRONE ICON (PNG)
+            // ----------------------------------------------------
             const droneIcon = L.divIcon({
-                html: '<i class="fas fa-location-arrow fa-2x" style="color:#2563eb; stroke:white; stroke-width:2px; transform: rotate(-45deg);"></i>',
+                html: '<img src="https://cdn-icons-png.flaticon.com/512/3256/3256195.png" class="drone-img">',
                 className: 'drone-marker-icon',
-                iconSize: [32, 32],
-                iconAnchor: [16, 16]
+                iconSize: [40, 40],
+                iconAnchor: [20, 20] 
             });
 
             let droneMarker = L.marker([0,0], {icon: droneIcon}); 
             let flightPath = [];
+            // Thicker blue line for visibility
             let polyline = L.polyline([], {color: '#2563eb', weight: 4, opacity: 0.8}).addTo(pathLayer);
             let isTracking = false;
 
@@ -324,7 +326,6 @@
                     const d = docSnap.data();
                     const id = docSnap.id;
 
-                    // A. ADD TO SIDEBAR
                     const div = document.createElement('div');
                     div.className = `mission-item ${isFirst ? 'active' : ''}`;
                     div.innerHTML = `
@@ -360,7 +361,6 @@
 
                     list.appendChild(div);
 
-                    // B. ADD MARKER (Red for Pending, Green for Active)
                     const color = d.status === 'PENDING' ? '#ef4444' : (d.status === 'IN_PROGRESS' ? '#10b981' : '#64748b');
                     const marker = L.circleMarker([d.lat, d.lng], {
                         radius: 10,
@@ -373,7 +373,6 @@
                     
                     missionLayer.addLayer(marker);
 
-                    // C. AUTO ZOOM NEW MISSION
                     if (isFirst && d.status === 'PENDING' && latestMissionId !== id) {
                         map.flyTo([d.lat, d.lng], 16, {duration: 1.5});
                         latestMissionId = id;
@@ -428,6 +427,13 @@
                     flightPath.push(newPos);
                     if (flightPath.length > 500) flightPath.shift();
                     polyline.setLatLngs(flightPath);
+
+                    // Update Rotation (Heading)
+                    // Note: Leaflet divIcons don't rotate easily, we rotate the inner img
+                    if(data.heading) {
+                        const img = document.querySelector('.drone-img');
+                        if(img) img.style.transform = `rotate(${data.heading}deg)`;
+                    }
 
                     if (isTracking) {
                         map.panTo(newPos, {animate: true, duration: 0.5});
