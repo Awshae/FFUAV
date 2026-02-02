@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="FFUAV Command Center">
-    <title>FFUAV Command Center - Unified</title>
+    <title>FFUAV Command Center - Admin</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
@@ -12,13 +12,13 @@
     <style>
         /* --- CORE THEME --- */
         :root {
-            --primary: #0f172a;
-            --secondary: #1e293b;
-            --accent: #3b82f6; /* Blue for Drone */
-            --fire: #ef4444;   /* Red for Fire */
-            --success: #10b981;
-            --warning: #f59e0b;
-            --text: #f8fafc;
+            --primary: #1e293b;   /* Dark Sidebar */
+            --secondary: #0f172a; /* Darker Header */
+            --accent: #2563eb;    /* Bright Blue */
+            --fire: #ef4444;      /* Red */
+            --success: #10b981;   /* Green */
+            --warning: #f59e0b;   /* Orange */
+            --text: #f8fafc;      /* White Text */
             --text-muted: #94a3b8;
             --border: #334155;
         }
@@ -27,7 +27,7 @@
         
         body {
             font-family: 'Segoe UI', system-ui, sans-serif;
-            background: var(--primary);
+            background: var(--secondary);
             color: var(--text);
             height: 100vh;
             display: flex;
@@ -38,15 +38,16 @@
         /* --- LOGIN OVERLAY --- */
         #login-overlay {
             position: fixed; inset: 0; z-index: 9999;
-            background: var(--primary);
+            background: var(--secondary);
             display: flex; align-items: center; justify-content: center;
         }
         .login-box {
-            background: var(--secondary); padding: 40px; border-radius: 12px;
+            background: var(--primary); padding: 40px; border-radius: 12px;
             text-align: center; width: 320px; border: 1px solid var(--border);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
         .login-box input {
-            width: 100%; padding: 12px; margin: 15px 0; background: var(--primary);
+            width: 100%; padding: 12px; margin: 15px 0; background: var(--secondary);
             border: 1px solid var(--border); color: white; border-radius: 6px;
         }
         .login-box button {
@@ -67,18 +68,34 @@
         .brand i { color: var(--fire); }
 
         .main-content {
-            flex: 1; display: grid; grid-template-columns: 400px 1fr; overflow: hidden;
+            flex: 1; display: grid; grid-template-columns: 380px 1fr; overflow: hidden;
         }
 
         /* --- LEFT PANEL (MISSIONS) --- */
         .sidebar {
-            background: var(--secondary); border-right: 1px solid var(--border);
+            background: var(--primary); border-right: 1px solid var(--border);
             display: flex; flex-direction: column;
         }
         .panel-header {
             padding: 16px; border-bottom: 1px solid var(--border);
-            font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; color: var(--text-muted);
+            display: flex; justify-content: space-between; align-items: center;
         }
+        .panel-title {
+            font-weight: 600; text-transform: uppercase; font-size: 12px; 
+            letter-spacing: 1px; color: var(--text-muted);
+        }
+
+        /* TOOLBAR BUTTONS */
+        .tool-btn {
+            background: transparent; border: 1px solid var(--border);
+            color: var(--text-muted); padding: 4px 8px; border-radius: 4px;
+            cursor: pointer; font-size: 11px; transition: all 0.2s;
+            display: flex; align-items: center; gap: 4px;
+        }
+        .tool-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+        .tool-btn.csv { border-color: var(--success); color: var(--success); }
+        .tool-btn.csv:hover { background: var(--success); color: white; }
+        
         .mission-list { flex: 1; overflow-y: auto; padding: 0; }
         
         .mission-item {
@@ -96,23 +113,24 @@
         
         .m-actions { display: flex; gap: 8px; margin-top: 10px; }
         .btn-sm {
-            padding: 6px 12px; border-radius: 4px; border: none; font-size: 11px;
-            font-weight: 700; cursor: pointer; flex: 1;
+            padding: 8px 12px; border-radius: 4px; border: none; font-size: 11px;
+            font-weight: 700; cursor: pointer; flex: 1; transition: transform 0.1s;
         }
+        .btn-sm:active { transform: scale(0.98); }
         .btn-approve { background: var(--success); color: #000; }
         .btn-abort { background: var(--secondary); border: 1px solid var(--fire); color: var(--fire); }
 
         /* --- RIGHT PANEL (MAP) --- */
         .map-wrapper { position: relative; width: 100%; height: 100%; }
-        #map { width: 100%; height: 100%; background: #0f172a; }
+        #map { width: 100%; height: 100%; background: #e5e7eb; } /* Light background for loading */
 
         /* --- TELEMETRY OVERLAY --- */
         .telemetry-card {
             position: absolute; top: 20px; right: 20px; z-index: 1000;
-            background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px);
+            background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px);
             border: 1px solid var(--border); border-radius: 12px;
-            width: 260px; padding: 16px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            width: 260px; padding: 16px; color: white;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
         }
         .t-header { 
             display: flex; justify-content: space-between; align-items: center; 
@@ -135,8 +153,8 @@
         /* --- MARKER STYLES --- */
         .custom-marker { transition: transform 0.3s; }
         .drone-marker-icon { 
-            filter: drop-shadow(0 0 10px var(--accent)); 
-            transition: all 0.5s linear; /* Smooth movement */
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4)); 
+            transition: all 0.5s linear;
         }
 
         /* --- RESPONSIVE --- */
@@ -166,15 +184,22 @@
                 FFUAV ADMIN
             </div>
             <button onclick="logout()" style="background:transparent; border:1px solid var(--border); color:var(--text); padding:6px 12px; border-radius:6px; cursor:pointer;">
-                LOGOUT
+                <i class="fas fa-sign-out-alt"></i> LOGOUT
             </button>
         </header>
 
         <div class="main-content">
             <div class="sidebar">
                 <div class="panel-header">
-                    <span>Incoming Missions</span>
-                    <button onclick="clearHistory()" style="float:right; background:none; border:none; color:var(--fire); cursor:pointer; font-size:10px;">CLEAR ALL</button>
+                    <span class="panel-title">Active Missions</span>
+                    <div style="display:flex; gap:8px;">
+                        <button class="tool-btn csv" onclick="exportCSV()" title="Download Report">
+                            <i class="fas fa-file-csv"></i> CSV
+                        </button>
+                        <button class="tool-btn" onclick="clearHistory()" title="Clear All">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="mission-list" id="mission-list">
                     <div style="padding:20px; text-align:center; color:var(--text-muted);">
@@ -214,7 +239,7 @@
                         </div>
                     </div>
                     
-                    <button id="track-btn" onclick="toggleTracking()" style="width:100%; margin-top:12px; padding:8px; background:var(--secondary); border:1px solid var(--accent); color:var(--accent); border-radius:6px; cursor:pointer; font-size:11px;">
+                    <button id="track-btn" onclick="toggleTracking()" style="width:100%; margin-top:12px; padding:8px; background:transparent; border:1px solid var(--accent); color:var(--accent); border-radius:6px; cursor:pointer; font-size:11px; font-weight:700;">
                         <i class="fas fa-crosshairs"></i> LOCK CAMERA
                     </button>
                 </div>
@@ -252,11 +277,12 @@
             const app = initializeApp(firebaseConfig);
             const db = getFirestore(app);
 
-            // 1. MAP SETUP
+            // 1. MAP SETUP (NORMAL COLOR - OpenStreetMap)
             const map = L.map('map').setView([12.9141, 74.8560], 14);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OpenStreetMap &copy; CARTO',
-                subdomains: 'abcd',
+            
+            // Standard OSM Layer (Bright/Color)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors',
                 maxZoom: 19
             }).addTo(map);
 
@@ -265,20 +291,20 @@
             const droneLayer = L.layerGroup().addTo(map);
             const pathLayer = L.layerGroup().addTo(map);
 
-            // Drone Specifics
+            // Drone Icon (Blue Arrow)
             const droneIcon = L.divIcon({
-                html: '<i class="fas fa-location-arrow fa-2x" style="color:#3b82f6; transform: rotate(-45deg);"></i>',
+                html: '<i class="fas fa-location-arrow fa-2x" style="color:#2563eb; stroke:white; stroke-width:2px; transform: rotate(-45deg);"></i>',
                 className: 'drone-marker-icon',
-                iconSize: [30, 30],
-                iconAnchor: [15, 15]
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
             });
 
-            let droneMarker = L.marker([0,0], {icon: droneIcon}); // Init off-screen
+            let droneMarker = L.marker([0,0], {icon: droneIcon}); 
             let flightPath = [];
-            let polyline = L.polyline([], {color: '#3b82f6', weight: 3, opacity: 0.7}).addTo(pathLayer);
+            let polyline = L.polyline([], {color: '#2563eb', weight: 4, opacity: 0.8}).addTo(pathLayer);
             let isTracking = false;
 
-            // 2. MISSION LISTENER (FIREBASE)
+            // 2. MISSION LISTENER
             const q = query(collection(db, "missions"), orderBy("timestamp", "desc"));
             let latestMissionId = null;
 
@@ -298,7 +324,7 @@
                     const d = docSnap.data();
                     const id = docSnap.id;
 
-                    // A. ADD TO SIDEBAR LIST
+                    // A. ADD TO SIDEBAR
                     const div = document.createElement('div');
                     div.className = `mission-item ${isFirst ? 'active' : ''}`;
                     div.innerHTML = `
@@ -306,13 +332,14 @@
                             <span class="m-badge status-${d.status}">${d.status}</span>
                             <span style="font-size:11px; color:var(--text-muted)">${d.timestamp?.toDate().toLocaleTimeString() || '--:--'}</span>
                         </div>
-                        <div style="font-weight:600; margin-bottom:4px;">${d.label || 'Emergency Report'}</div>
+                        <div style="font-weight:600; margin-bottom:4px; font-size:14px;">${d.label || 'Emergency Report'}</div>
                         <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">
-                            <i class="fas fa-user"></i> ${d.reporterName || 'Unknown'} | <i class="fas fa-phone"></i> ${d.phone}
+                            <i class="fas fa-user"></i> ${d.reporterName || 'Unknown'} <br>
+                            <i class="fas fa-phone"></i> ${d.phone} | <span style="color:${d.severityLevel === 'critical' ? 'var(--fire)' : 'var(--text-muted)'}">${(d.severityLevel || '').toUpperCase()}</span>
                         </div>
                         ${d.status === 'PENDING' ? `
                             <div class="m-actions">
-                                <button class="btn-sm btn-approve" onclick="window.updateStatus('${id}', 'IN_PROGRESS')">DEPLOY DRONE</button>
+                                <button class="btn-sm btn-approve" onclick="window.updateStatus('${id}', 'IN_PROGRESS')">DEPLOY</button>
                                 <button class="btn-sm btn-abort" onclick="window.updateStatus('${id}', 'ABORT_SIGNAL')">REJECT</button>
                             </div>
                         ` : ''}
@@ -323,33 +350,32 @@
                         ` : ''}
                     `;
                     
-                    // Click to zoom to mission
                     div.addEventListener('click', (e) => {
                         if(e.target.tagName !== 'BUTTON') {
                             map.flyTo([d.lat, d.lng], 16);
-                            isTracking = false; // Stop tracking drone if user looks at mission
+                            isTracking = false;
                             updateTrackBtn();
                         }
                     });
 
                     list.appendChild(div);
 
-                    // B. ADD MARKER TO MAP
-                    const color = d.status === 'PENDING' ? '#f59e0b' : (d.status === 'IN_PROGRESS' ? '#10b981' : '#64748b');
+                    // B. ADD MARKER (Red for Pending, Green for Active)
+                    const color = d.status === 'PENDING' ? '#ef4444' : (d.status === 'IN_PROGRESS' ? '#10b981' : '#64748b');
                     const marker = L.circleMarker([d.lat, d.lng], {
-                        radius: 8,
+                        radius: 10,
                         fillColor: color,
                         color: "#fff",
                         weight: 2,
                         opacity: 1,
-                        fillOpacity: 0.8
-                    }).bindPopup(`<b>${d.label}</b><br>Reporter: ${d.reporterName}`);
+                        fillOpacity: 0.9
+                    }).bindPopup(`<b>${d.label}</b><br>Severity: ${d.severityLevel}`);
                     
                     missionLayer.addLayer(marker);
 
                     // C. AUTO ZOOM NEW MISSION
                     if (isFirst && d.status === 'PENDING' && latestMissionId !== id) {
-                        map.flyTo([d.lat, d.lng], 16, {duration: 2});
+                        map.flyTo([d.lat, d.lng], 16, {duration: 1.5});
                         latestMissionId = id;
                         isTracking = false;
                         updateTrackBtn();
@@ -358,30 +384,27 @@
                 });
             });
 
-            // 3. DRONE TELEMETRY LISTENER
+            // 3. DRONE TELEMETRY
             const droneRef = doc(db, "drone_status", "drone_01");
             
             onSnapshot(droneRef, (snap) => {
                 if(!snap.exists()) return;
                 const data = snap.data();
 
-                // UI Update
                 document.getElementById('t-alt').innerText = (data.altitude || 0) + " m";
                 document.getElementById('t-speed').innerText = (data.speed || 0) + " m/s";
                 document.getElementById('t-batt-text').innerText = (data.battery || 0) + "%";
                 document.getElementById('t-batt-fill').style.width = (data.battery || 0) + "%";
                 
-                // Color code battery
                 const fill = document.getElementById('t-batt-fill');
                 if(data.battery < 20) fill.style.background = "var(--fire)";
                 else if(data.battery < 50) fill.style.background = "var(--warning)";
                 else fill.style.background = "var(--success)";
 
-                // Status Pill
                 const pill = document.getElementById('drone-pill');
                 const lastUpdate = data.last_update?.toDate();
                 const now = new Date();
-                const diff = (now - lastUpdate) / 1000; // seconds
+                const diff = (now - lastUpdate) / 1000;
 
                 if (diff < 5) {
                     pill.className = "drone-status-pill online";
@@ -390,43 +413,35 @@
                 } else {
                     pill.className = "drone-status-pill";
                     pill.innerText = "OFFLINE";
-                    document.getElementById('t-last-seen').innerText = diff > 60 ? Math.floor(diff/60)+"m ago" : Math.floor(diff)+"s ago";
+                    document.getElementById('t-last-seen').innerText = Math.floor(diff)+"s ago";
                 }
 
-                // Map Update (Only if valid GPS)
                 if (data.lat && data.lng && data.lat !== 0) {
                     const newPos = [data.lat, data.lng];
 
-                    // Add marker if not added
                     if (!map.hasLayer(droneMarker)) {
                         droneMarker.addTo(droneLayer);
                     }
                     
                     droneMarker.setLatLng(newPos);
                     
-                    // Update Path
                     flightPath.push(newPos);
-                    // Limit path history for performance (last 500 points)
                     if (flightPath.length > 500) flightPath.shift();
                     polyline.setLatLngs(flightPath);
 
-                    // Camera Tracking
                     if (isTracking) {
                         map.panTo(newPos, {animate: true, duration: 0.5});
                     }
                 }
             });
 
-            // 4. ACTION FUNCTIONS
+            // 4. FUNCTIONS
             window.updateStatus = async (id, status) => {
                 if (status === 'ABORT_SIGNAL' && !confirm('Abort Mission? Drone will return.')) return;
 
                 const ref = doc(db, "missions", id);
-                
-                // 1. Update Mission
                 await updateDoc(ref, { status: status });
 
-                // 2. Send Command to Drone (if Deploying)
                 if (status === 'IN_PROGRESS') {
                     const snap = await getDoc(ref);
                     const m = snap.data();
@@ -438,7 +453,6 @@
                         timestamp: serverTimestamp()
                     });
                     
-                    // Auto-track drone when deployed
                     isTracking = true;
                     updateTrackBtn();
                 }
@@ -472,7 +486,30 @@
                     flightPath = [];
                     polyline.setLatLngs([]);
                 }
-            }
+            };
+
+            window.exportCSV = async () => {
+                const snap = await getDocs(query(collection(db, "missions"), orderBy("timestamp", "desc")));
+                let csv = "Status,Label,Latitude,Longitude,Phone,ReporterName,Severity,Date,Time\n";
+                
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    const dateObj = d.timestamp?.toDate();
+                    const date = dateObj ? dateObj.toLocaleDateString() : '';
+                    const time = dateObj ? dateObj.toLocaleTimeString() : '';
+                    
+                    csv += `"${d.status}","${d.label||''}","${d.lat}","${d.lng}","${d.phone}","${d.reporterName||''}","${d.severityLevel||''}","${date}","${time}"\n`;
+                });
+
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `FFUAV_Report_${new Date().toISOString().slice(0,10)}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
         }
     </script>
 </body>
