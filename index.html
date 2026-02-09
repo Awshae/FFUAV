@@ -230,65 +230,85 @@
             doc, 
             onSnapshot 
         } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
+    
         // --- FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyD3j2PpWAjlOQo-8x22EIECrAvbYfwtvng",
             authDomain: "autonomous-ff-uav.firebaseapp.com",
             projectId: "autonomous-ff-uav",
         };
-
+    
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-
+    
         // --- MAP SETUP ---
         const map = L.map('map').setView([12.9141, 74.8560], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
         }).addTo(map);
-
+    
         let marker;
         let selectedLat = null;
         let selectedLng = null;
         let isSystemBusy = false;
-
-        // --- STATUS MONITOR ---
-        // Listens to the 'system_busy' flag set by the Admin
+    
+        // Modal Logic
+        window.openModal = () => document.getElementById('info-modal').style.display = 'flex';
+        window.closeModal = () => document.getElementById('info-modal').style.display = 'none';
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+    
+        // --- STATUS MONITOR (SECURE) ---
+        // Instead of querying private missions, we listen to the public 'drone_status' flag
         const statusRef = doc(db, "drone_status", "drone_01");
         
         onSnapshot(statusRef, (docSnap) => {
             const statusDiv = document.getElementById('system-status');
             const card = document.getElementById('main-card');
             const warning = document.getElementById('busy-warning');
-
+    
             // Default to free if doc doesn't exist yet
             if (!docSnap.exists()) {
                 setUIFree();
                 return;
             }
-
+    
             const data = docSnap.data();
+            
+            // This flag is updated by Admin panel whenever a mission is active
             isSystemBusy = data.system_busy === true;
-
+    
             if (isSystemBusy) {
-                // SYSTEM BUSY UI
+                // LOCK UI
                 statusDiv.innerHTML = '<span class="status-icon"></span> STATUS: BUSY (Mission Active)';
                 statusDiv.className = "status-busy";
                 card.classList.add("card-disabled");
                 warning.style.display = "block";
+                
+                // Disable map interaction
+                map.dragging.disable();
+                map.touchZoom.disable();
+                map.doubleClickZoom.disable();
+                map.scrollWheelZoom.disable();
             } else {
-                // SYSTEM FREE UI
+                // UNLOCK UI
                 setUIFree();
             }
-
+    
             function setUIFree() {
                 statusDiv.innerHTML = '<span class="status-icon"></span> STATUS: ONLINE (Ready)';
                 statusDiv.className = "status-ready";
                 card.classList.remove("card-disabled");
                 warning.style.display = "none";
+                
+                // Re-enable map interaction
+                map.dragging.enable();
+                map.touchZoom.enable();
+                map.doubleClickZoom.enable();
+                map.scrollWheelZoom.enable();
             }
         });
-
+    
         // --- MAP CLICK ---
         map.on('click', function(e) {
             if (isSystemBusy) {
@@ -298,7 +318,7 @@
             updatePosition(e.latlng.lat, e.latlng.lng);
             showStatus('Location selected.', 'success');
         });
-
+    
         window.updatePosition = function(lat, lng) {
             selectedLat = lat;
             selectedLng = lng;
@@ -319,7 +339,7 @@
             `;
             document.getElementById('deployBtn').disabled = false;
         };
-
+    
         window.useMyLocation = function() {
             const btn = document.querySelector('.btn-primary');
             btn.innerHTML = '<div class="spinner"></div> Locating...';
@@ -342,38 +362,38 @@
                 btn.innerHTML = '<i class="fas fa-crosshairs"></i> My Location';
             }
         };
-
+    
         window.showStatus = function(msg, type = '') {
             const el = document.getElementById('status-msg');
             el.innerText = msg;
             el.className = 'status-msg ' + type;
         };
-
+    
         window.validateForm = function() {
             const name = document.getElementById('reporter-name').value.trim();
             const phone = document.getElementById('phone').value.trim();
             const sev = document.getElementById('severity-level').value;
-
+    
             if (!name) return "Name is required";
             if (!sev) return "Severity is required";
             if (!phone || phone.length !== 10 || isNaN(phone)) return "Valid 10-digit phone required";
             if (!selectedLat) return "Select location on map";
             return null;
         };
-
+    
         window.sendMission = async function() {
             if (isSystemBusy) return;
-
+    
             const error = validateForm();
             if (error) {
                 showStatus(error, 'error');
                 return;
             }
-
+    
             const btn = document.getElementById('deployBtn');
             btn.innerHTML = '<div class="spinner"></div> Sending...';
             btn.disabled = true;
-
+    
             const data = {
                 reporterName: document.getElementById('reporter-name').value.trim(),
                 phone: document.getElementById('phone').value.trim(),
@@ -385,20 +405,27 @@
                 status: "PENDING",
                 timestamp: serverTimestamp()
             };
-
+    
             try {
-                // Write to 'missions' collection (Public Write Allowed)
+                // Public Write Access is allowed by rules
                 await addDoc(collection(db, "missions"), data);
                 
                 showStatus('Alert Sent! Waiting for Dispatch...', 'success');
                 btn.innerText = 'SENT';
                 
+                // Optimistic UI update (Locally lock immediately)
+                isSystemBusy = true;
+                document.getElementById('busy-warning').style.display = "block";
+                document.getElementById('main-card').classList.add("card-disabled");
+                document.getElementById('system-status').className = "status-busy";
+                document.getElementById('system-status').innerHTML = '<span class="status-icon"></span> STATUS: BUSY (Mission Sent)';
+    
                 // Reset form slightly
                 setTimeout(() => {
                     document.getElementById('label').value = "";
                     marker.closePopup();
                 }, 2000);
-
+    
             } catch (e) {
                 console.error("Transmission Error:", e);
                 showStatus('Failed to send. Check internet.', 'error');
