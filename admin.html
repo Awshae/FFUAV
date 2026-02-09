@@ -3,409 +3,536 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="FFUAV Emergency Drone Dispatch System">
-    <meta name="theme-color" content="#1f2937">
-    <title>FFUAV - Emergency Drone Dispatch System</title>
-    
+    <meta name="description" content="FFUAV Command Center">
+    <title>FFUAV Command Center - Admin</title>
+
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
-    
+
     <style>
-        /* --- CORE STYLES --- */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+        /* --- CORE THEME --- */
         :root {
-            --primary: #1f2937;
-            --secondary: #dc2626;
-            --accent: #0891b2;
+            --primary: #1e293b;
+            --secondary: #0f172a;
+            --accent: #2563eb;
+            --fire: #ef4444;
             --success: #10b981;
             --warning: #f59e0b;
-            --dark: #111827;
-            --light: #f3f4f6;
-            --border: #e5e7eb;
-            --text: #374151;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
         }
 
-        html, body { height: 100%; overflow: hidden; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: linear-gradient(135deg, var(--dark) 0%, var(--primary) 100%);
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--secondary);
             color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
 
-        #map { height: 100vh; width: 100%; z-index: 1; }
-
-        /* --- STATUS BAR --- */
-        #system-status {
-            position: absolute; top: 0; left: 0; right: 0;
-            padding: 12px 20px; text-align: center; font-weight: 700;
-            font-size: 13px; color: white; z-index: 2000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-            text-transform: uppercase; letter-spacing: 1.2px;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .status-ready { background: linear-gradient(90deg, var(--primary), var(--accent)); }
-        .status-busy { background: linear-gradient(90deg, var(--secondary), #991b1b); animation: pulse-danger 2s infinite; }
-
-        @keyframes pulse-danger {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.8; }
-        }
-
-        .status-icon {
-            width: 8px; height: 8px; border-radius: 50%; background: white; animation: blink 1s infinite;
-        }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-
-        /* --- UI CARD --- */
-        .mission-card {
-            position: absolute; top: 70px; left: 20px;
-            width: 360px; max-width: 90vw; max-height: calc(100vh - 100px);
-            overflow-y: auto; background: white; padding: 20px;
-            border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-            z-index: 1000; display: flex; flex-direction: column; gap: 14px;
-            border-left: 4px solid var(--accent); transition: all 0.3s ease;
-        }
-
-        .card-disabled { 
-            opacity: 0.6; pointer-events: none; filter: grayscale(0.8);
-        }
-
-        .header-row { 
-            display: flex; justify-content: space-between; align-items: center; 
-            border-bottom: 1px solid var(--border); padding-bottom: 14px; 
-        }
-
-        .title { font-weight: 700; color: var(--primary); font-size: 18px; display: flex; align-items: center; gap: 8px; }
-        .title i { color: var(--accent); }
-
-        .coords-display { 
-            font-family: monospace; color: var(--accent); background: rgba(6, 182, 212, 0.1);
-            padding: 6px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;
-        }
-
-        /* --- INPUTS --- */
-        .field-section { display: flex; flex-direction: column; gap: 6px; }
-        .field-label { font-size: 11px; font-weight: 700; color: var(--primary); text-transform: uppercase; }
-        .required-indicator { color: var(--secondary); }
-
-        input, select { 
-            width: 100%; padding: 12px; border: 1.5px solid var(--border); 
-            border-radius: 8px; outline: none; font-size: 14px; transition: all 0.2s;
-        }
-        input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1); }
-
-        /* --- BUTTONS --- */
-        .action-row { display: flex; gap: 10px; }
-        
-        button { 
-            padding: 12px; border: none; border-radius: 8px; font-weight: 700; 
-            cursor: pointer; transition: all 0.2s; font-size: 13px; text-transform: uppercase;
-            display: flex; align-items: center; justify-content: center; gap: 6px; flex: 1;
-        }
-
-        .btn-primary { background: var(--accent); color: white; }
-        .btn-primary:hover { background: #0e7490; transform: translateY(-1px); }
-
-        .btn-deploy { background: linear-gradient(135deg, var(--secondary), #991b1b); color: white; }
-        .btn-deploy:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3); }
-        .btn-deploy:disabled { background: #d1d5db; cursor: not-allowed; opacity: 0.7; }
-
-        /* --- ALERTS --- */
-        .emergency-warning { 
-            background: #fee2e2; color: #991b1b; padding: 12px; border-radius: 8px;
-            font-size: 12px; font-weight: 700; text-align: center; display: none;
-            border: 1px solid #fecaca; animation: shake 0.5s ease-in-out;
-        }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
-
-        .status-msg { 
-            text-align: center; font-size: 13px; font-weight: 600; min-height: 20px; margin-top: 5px; 
-        }
-        .status-msg.success { color: var(--success); }
-        .status-msg.error { color: var(--secondary); }
-
-        /* --- INFO BUTTON --- */
-        .info-btn {
-            position: absolute; top: 60px; right: 20px; width: 40px; height: 40px;
-            border-radius: 50%; background: white; border: 2px solid var(--accent);
-            color: var(--accent); font-size: 18px; cursor: pointer; z-index: 2000;
+        /* --- LOGIN OVERLAY --- */
+        #login-overlay {
+            position: fixed; inset: 0; z-index: 9999;
+            background: var(--secondary);
             display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .login-box {
+            background: var(--primary); padding: 40px; border-radius: 12px;
+            text-align: center; width: 320px; border: 1px solid var(--border);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+        .login-box input {
+            width: 100%; padding: 12px; margin: 15px 0; background: var(--secondary);
+            border: 1px solid var(--border); color: white; border-radius: 6px;
+        }
+        .login-box button {
+            width: 100%; padding: 12px; background: var(--accent); color: white;
+            border: none; border-radius: 6px; cursor: pointer; font-weight: bold;
         }
 
-        /* --- SPINNER --- */
-        .spinner {
-            display: inline-block; width: 12px; height: 12px;
-            border: 2px solid rgba(255,255,255,0.5); border-top-color: white;
-            border-radius: 50%; animation: spin 0.8s linear infinite;
+        /* --- DASHBOARD LAYOUT --- */
+        #dashboard { display: none; height: 100%; flex-direction: column; }
+        
+        header {
+            height: 60px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 24px; background: var(--secondary);
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .brand { font-size: 20px; font-weight: 700; display: flex; gap: 10px; align-items: center; }
+        .brand i { color: var(--fire); }
+
+        .main-content {
+            flex: 1; display: grid; grid-template-columns: 380px 1fr; overflow: hidden;
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            background: var(--primary); border-right: 1px solid var(--border);
+            display: flex; flex-direction: column;
+        }
+        .panel-header {
+            padding: 16px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .panel-title {
+            font-weight: 600; text-transform: uppercase; font-size: 12px; 
+            letter-spacing: 1px; color: var(--text-muted);
+        }
+
+        .tool-btn {
+            background: transparent; border: 1px solid var(--border);
+            color: var(--text-muted); padding: 4px 8px; border-radius: 4px;
+            cursor: pointer; font-size: 11px; transition: all 0.2s;
+            display: flex; align-items: center; gap: 4px;
+        }
+        .tool-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+        .tool-btn.csv { border-color: var(--success); color: var(--success); }
+        .tool-btn.csv:hover { background: var(--success); color: white; }
+        
+        .mission-list { flex: 1; overflow-y: auto; padding: 0; }
+        
+        .mission-item {
+            padding: 16px; border-bottom: 1px solid var(--border);
+            transition: background 0.2s; cursor: pointer;
+        }
+        .mission-item:hover { background: rgba(255,255,255,0.02); }
+        .mission-item.active { background: rgba(59, 130, 246, 0.1); border-left: 3px solid var(--accent); }
+        
+        .m-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
+        .m-badge { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+        .status-PENDING { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+        .status-IN_PROGRESS { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+        .status-ABORTED { background: rgba(239, 68, 68, 0.2); color: var(--fire); }
+        
+        .m-actions { display: flex; gap: 8px; margin-top: 10px; }
+        .btn-sm {
+            padding: 8px 12px; border-radius: 4px; border: none; font-size: 11px;
+            font-weight: 700; cursor: pointer; flex: 1; transition: transform 0.1s;
+        }
+        .btn-sm:active { transform: scale(0.98); }
+        .btn-approve { background: var(--success); color: #000; }
+        .btn-abort { background: var(--secondary); border: 1px solid var(--fire); color: var(--fire); }
+
+        /* --- MAP & TELEMETRY --- */
+        .map-wrapper { position: relative; width: 100%; height: 100%; }
+        #map { width: 100%; height: 100%; background: #e5e7eb; } 
+
+        .telemetry-card {
+            position: absolute; top: 20px; right: 20px; z-index: 1000;
+            background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px);
+            border: 1px solid var(--border); border-radius: 12px;
+            width: 260px; padding: 16px; color: white;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .t-header { 
+            display: flex; justify-content: space-between; align-items: center; 
+            margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+        }
+        .drone-status-pill {
+            font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 10px;
+            background: var(--border); color: var(--text-muted);
+        }
+        .drone-status-pill.online { background: var(--accent); color: white; }
+
+        .t-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .t-item { display: flex; flex-direction: column; gap: 2px; }
+        .t-label { font-size: 11px; color: var(--text-muted); }
+        .t-value { font-size: 16px; font-weight: 600; font-family: monospace; }
+        
+        .battery-bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+        .battery-fill { height: 100%; background: var(--success); width: 0%; transition: width 0.5s; }
+
+        /* --- MARKER STYLES --- */
+        .drone-marker-icon {
+            transition: all 0.3s linear;
+        }
+        .drone-img {
+            width: 40px;
+            height: 40px;
+            filter: drop-shadow(0 5px 10px rgba(0,0,0,0.4));
+        }
 
         /* --- RESPONSIVE --- */
-        @media (max-width: 768px) {
-            .mission-card { width: calc(100% - 20px); left: 10px; bottom: 10px; top: auto; max-height: 60vh; }
+        @media (max-width: 900px) {
+            .main-content { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+            .sidebar { border-right: none; border-bottom: 1px solid var(--border); order: 2; }
+            .map-wrapper { order: 1; }
         }
     </style>
 </head>
 <body>
 
-    <div id="system-status" class="status-ready">
-        <span class="status-icon"></span>
-        System Status: Connecting...
+    <div id="login-overlay">
+        <div class="login-box">
+            <h2 style="margin-bottom:10px;">FFUAV Command</h2>
+            <p style="color:var(--text-muted); font-size:13px;">Restricted Access</p>
+            <input type="password" id="password" placeholder="Passcode (1234)">
+            <button onclick="login()">ENTER SYSTEM</button>
+            <p id="login-error" style="color:var(--fire); margin-top:10px; display:none; font-size:12px;">Access Denied</p>
+        </div>
     </div>
 
-    <button class="info-btn" onclick="alert('Emergency Contacts:\nFire: 101\nAmbulance: 102\nPolice: 100')">
-        <i class="fas fa-info"></i>
-    </button>
-
-    <div class="mission-card" id="main-card">
-        <div class="header-row">
-            <span class="title">
-                <i class="fas fa-helicopter"></i> Dispatch
-            </span>
-            <span class="coords-display" id="coords-text">
-                <i class="fas fa-location-dot"></i> Select Location
-            </span>
-        </div>
-
-        <div id="busy-warning" class="emergency-warning">
-            <i class="fas fa-exclamation-triangle"></i> SYSTEM BUSY: DRONE DEPLOYED<br>
-            Please wait or call Emergency Services
-        </div>
-
-        <div class="field-section">
-            <label class="field-label">Name <span class="required-indicator">*</span></label>
-            <input type="text" id="reporter-name" placeholder="Your Full Name" required>
-        </div>
-
-        <div class="field-section">
-            <label class="field-label">Severity <span class="required-indicator">*</span></label>
-            <select id="severity-level" required>
-                <option value="">Select Level...</option>
-                <option value="low">Low (Smoke/Small Fire)</option>
-                <option value="medium">Medium (Visible Flames)</option>
-                <option value="high">High (Spreading Rapidly)</option>
-                <option value="critical">CRITICAL (Life Threatening)</option>
-            </select>
-        </div>
-
-        <div class="field-section">
-            <label class="field-label">Phone <span class="required-indicator">*</span></label>
-            <input type="tel" id="phone" placeholder="10-Digit Number" maxlength="10" required>
-        </div>
-
-        <div class="field-section">
-            <label class="field-label">Landmark</label>
-            <input type="text" id="label" placeholder="e.g., Behind City Mall">
-        </div>
-
-        <div class="action-row">
-            <button class="btn-primary" onclick="useMyLocation()">
-                <i class="fas fa-crosshairs"></i> My Location
+    <div id="dashboard">
+        <header>
+            <div class="brand">
+                <i class="fas fa-shield-alt"></i>
+                FFUAV ADMIN
+            </div>
+            <button onclick="logout()" style="background:transparent; border:1px solid var(--border); color:var(--text); padding:6px 12px; border-radius:6px; cursor:pointer;">
+                <i class="fas fa-sign-out-alt"></i> LOGOUT
             </button>
-        </div>
+        </header>
 
-        <div class="action-row">
-            <button id="deployBtn" class="btn-deploy" onclick="sendMission()" disabled>
-                SEND ALERT
-            </button>
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="panel-header">
+                    <span class="panel-title">Active Missions</span>
+                    <div style="display:flex; gap:8px;">
+                        <button class="tool-btn csv" onclick="exportCSV()" title="Download Report">
+                            <i class="fas fa-file-csv"></i> CSV
+                        </button>
+                        <button class="tool-btn" onclick="clearHistory()" title="Clear All">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="mission-list" id="mission-list">
+                    <div style="padding:20px; text-align:center; color:var(--text-muted);">
+                        <i class="fas fa-spinner fa-spin"></i> Connecting...
+                    </div>
+                </div>
+            </div>
+
+            <div class="map-wrapper">
+                <div id="map"></div>
+
+                <div class="telemetry-card">
+                    <div class="t-header">
+                        <span style="font-weight:600; font-size:13px;"><i class="fas fa-plane"></i> DRONE-01</span>
+                        <span id="drone-pill" class="drone-status-pill">OFFLINE</span>
+                    </div>
+                    
+                    <div class="t-grid">
+                        <div class="t-item">
+                            <span class="t-label">ALTITUDE</span>
+                            <span class="t-value" id="t-alt">-- m</span>
+                        </div>
+                        <div class="t-item">
+                            <span class="t-label">SPEED</span>
+                            <span class="t-value" id="t-speed">-- m/s</span>
+                        </div>
+                        <div class="t-item" style="grid-column: span 2;">
+                            <div style="display:flex; justify-content:space-between;">
+                                <span class="t-label">BATTERY</span>
+                                <span class="t-value" id="t-batt-text">--%</span>
+                            </div>
+                            <div class="battery-bar"><div class="battery-fill" id="t-batt-fill"></div></div>
+                        </div>
+                        <div class="t-item" style="grid-column: span 2; border-top:1px solid var(--border); padding-top:10px; margin-top:4px;">
+                            <span class="t-label">LAST UPDATE</span>
+                            <span class="t-label" id="t-last-seen" style="color:var(--accent);">--</span>
+                        </div>
+                    </div>
+                    
+                    <button id="track-btn" onclick="toggleTracking()" style="width:100%; margin-top:12px; padding:8px; background:transparent; border:1px solid var(--accent); color:var(--accent); border-radius:6px; cursor:pointer; font-size:11px; font-weight:700;">
+                        <i class="fas fa-crosshairs"></i> LOCK CAMERA
+                    </button>
+                </div>
+            </div>
         </div>
-        <div class="status-msg" id="status-msg"></div>
     </div>
-
-    <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { 
-            getFirestore, 
-            collection, 
-            addDoc, 
-            serverTimestamp, 
-            doc, 
-            onSnapshot 
-        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, query, orderBy, onSnapshot, doc, updateDoc, setDoc, serverTimestamp, getDocs, deleteDoc, getDoc } 
+        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // --- FIREBASE CONFIG ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyD3j2PpWAjlOQo-8x22EIECrAvbYfwtvng",
-            authDomain: "autonomous-ff-uav.firebaseapp.com",
-            projectId: "autonomous-ff-uav",
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        // --- MAP SETUP ---
-        const map = L.map('map').setView([12.9141, 74.8560], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
-        }).addTo(map);
-
-        let marker;
-        let selectedLat = null;
-        let selectedLng = null;
-        let isSystemBusy = false;
-
-        // --- STATUS MONITOR ---
-        // Listens to the 'system_busy' flag set by the Admin
-        const statusRef = doc(db, "drone_status", "drone_01");
-        
-        onSnapshot(statusRef, (docSnap) => {
-            const statusDiv = document.getElementById('system-status');
-            const card = document.getElementById('main-card');
-            const warning = document.getElementById('busy-warning');
-
-            // Default to free if doc doesn't exist yet
-            if (!docSnap.exists()) {
-                setUIFree();
-                return;
-            }
-
-            const data = docSnap.data();
-            isSystemBusy = data.system_busy === true;
-
-            if (isSystemBusy) {
-                // SYSTEM BUSY UI
-                statusDiv.innerHTML = '<span class="status-icon"></span> STATUS: BUSY (Mission Active)';
-                statusDiv.className = "status-busy";
-                card.classList.add("card-disabled");
-                warning.style.display = "block";
+        // --- AUTH ---
+        window.login = () => {
+            if(document.getElementById('password').value === '1234') {
+                document.getElementById('login-overlay').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'flex';
+                initSystem();
             } else {
-                // SYSTEM FREE UI
-                setUIFree();
-            }
-
-            function setUIFree() {
-                statusDiv.innerHTML = '<span class="status-icon"></span> STATUS: ONLINE (Ready)';
-                statusDiv.className = "status-ready";
-                card.classList.remove("card-disabled");
-                warning.style.display = "none";
-            }
-        });
-
-        // --- MAP CLICK ---
-        map.on('click', function(e) {
-            if (isSystemBusy) {
-                showStatus('System is busy. Please call 101.', 'error');
-                return;
-            }
-            updatePosition(e.latlng.lat, e.latlng.lng);
-            showStatus('Location selected.', 'success');
-        });
-
-        window.updatePosition = function(lat, lng) {
-            selectedLat = lat;
-            selectedLng = lng;
-            
-            if (marker) map.removeLayer(marker);
-            marker = L.marker([lat, lng], {
-                icon: L.icon({
-                    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-                    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-                    iconSize: [25, 41],
-                    iconAnchor: [12, 41],
-                    popupAnchor: [1, -34]
-                })
-            }).addTo(map);
-            
-            document.getElementById('coords-text').innerHTML = `
-                <i class="fas fa-location-dot"></i> ${lat.toFixed(4)}, ${lng.toFixed(4)}
-            `;
-            document.getElementById('deployBtn').disabled = false;
-        };
-
-        window.useMyLocation = function() {
-            const btn = document.querySelector('.btn-primary');
-            btn.innerHTML = '<div class="spinner"></div> Locating...';
-            
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    pos => {
-                        const { latitude, longitude } = pos.coords;
-                        map.setView([latitude, longitude], 16);
-                        updatePosition(latitude, longitude);
-                        btn.innerHTML = '<i class="fas fa-crosshairs"></i> My Location';
-                    },
-                    err => {
-                        showStatus("GPS Error: " + err.message, "error");
-                        btn.innerHTML = '<i class="fas fa-crosshairs"></i> My Location';
-                    }
-                );
-            } else {
-                showStatus("Geolocation not supported", "error");
-                btn.innerHTML = '<i class="fas fa-crosshairs"></i> My Location';
+                document.getElementById('login-error').style.display = 'block';
             }
         };
 
-        window.showStatus = function(msg, type = '') {
-            const el = document.getElementById('status-msg');
-            el.innerText = msg;
-            el.className = 'status-msg ' + type;
-        };
+        window.logout = () => location.reload();
 
-        window.validateForm = function() {
-            const name = document.getElementById('reporter-name').value.trim();
-            const phone = document.getElementById('phone').value.trim();
-            const sev = document.getElementById('severity-level').value;
-
-            if (!name) return "Name is required";
-            if (!sev) return "Severity is required";
-            if (!phone || phone.length !== 10 || isNaN(phone)) return "Valid 10-digit phone required";
-            if (!selectedLat) return "Select location on map";
-            return null;
-        };
-
-        window.sendMission = async function() {
-            if (isSystemBusy) return;
-
-            const error = validateForm();
-            if (error) {
-                showStatus(error, 'error');
-                return;
-            }
-
-            const btn = document.getElementById('deployBtn');
-            btn.innerHTML = '<div class="spinner"></div> Sending...';
-            btn.disabled = true;
-
-            const data = {
-                reporterName: document.getElementById('reporter-name').value.trim(),
-                phone: document.getElementById('phone').value.trim(),
-                severityLevel: document.getElementById('severity-level').value,
-                label: document.getElementById('label').value.trim() || "Emergency Report",
-                lat: selectedLat,
-                lng: selectedLng,
-                alt: 15.0,
-                status: "PENDING",
-                timestamp: serverTimestamp()
+        // --- MAIN SYSTEM ---
+        function initSystem() {
+            const firebaseConfig = {
+                apiKey: "AIzaSyD3j2PpWAjlOQo-8x22EIECrAvbYfwtvng",
+                authDomain: "autonomous-ff-uav.firebaseapp.com",
+                projectId: "autonomous-ff-uav",
             };
 
-            try {
-                // Write to 'missions' collection (Public Write Allowed)
-                await addDoc(collection(db, "missions"), data);
-                
-                showStatus('Alert Sent! Waiting for Dispatch...', 'success');
-                btn.innerText = 'SENT';
-                
-                // Reset form slightly
-                setTimeout(() => {
-                    document.getElementById('label').value = "";
-                    marker.closePopup();
-                }, 2000);
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
 
-            } catch (e) {
-                console.error("Transmission Error:", e);
-                showStatus('Failed to send. Check internet.', 'error');
-                btn.disabled = false;
-                btn.innerText = 'TRANSMIT COORDINATES';
+            // 1. MAP SETUP
+            const map = L.map('map').setView([12.9141, 74.8560], 14);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
+
+            const missionLayer = L.layerGroup().addTo(map);
+            const droneLayer = L.layerGroup().addTo(map);
+            const pathLayer = L.layerGroup().addTo(map);
+
+            // ----------------------------------------------------
+            // NEW DRONE ICON (PNG)
+            // ----------------------------------------------------
+            const droneIcon = L.divIcon({
+                html: '<img src="https://cdn-icons-png.flaticon.com/512/3256/3256195.png" class="drone-img">',
+                className: 'drone-marker-icon',
+                iconSize: [40, 40],
+                iconAnchor: [20, 20] 
+            });
+
+            let droneMarker = L.marker([0,0], {icon: droneIcon}); 
+            let flightPath = [];
+            // Thicker blue line for visibility
+            let polyline = L.polyline([], {color: '#2563eb', weight: 4, opacity: 0.8}).addTo(pathLayer);
+            let isTracking = false;
+
+            // 2. MISSION LISTENER
+            const q = query(collection(db, "missions"), orderBy("timestamp", "desc"));
+            let latestMissionId = null;
+
+            onSnapshot(q, snap => {
+                const list = document.getElementById('mission-list');
+                list.innerHTML = "";
+                missionLayer.clearLayers();
+
+                if (snap.empty) {
+                    list.innerHTML = `<div style="padding:20px;text-align:center;color:#64748b">No active missions</div>`;
+                    return;
+                }
+
+                let isFirst = true;
+
+                snap.forEach(docSnap => {
+                    const d = docSnap.data();
+                    const id = docSnap.id;
+
+                    const div = document.createElement('div');
+                    div.className = `mission-item ${isFirst ? 'active' : ''}`;
+                    div.innerHTML = `
+                        <div class="m-row">
+                            <span class="m-badge status-${d.status}">${d.status}</span>
+                            <span style="font-size:11px; color:var(--text-muted)">${d.timestamp?.toDate().toLocaleTimeString() || '--:--'}</span>
+                        </div>
+                        <div style="font-weight:600; margin-bottom:4px; font-size:14px;">${d.label || 'Emergency Report'}</div>
+                        <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">
+                            <i class="fas fa-user"></i> ${d.reporterName || 'Unknown'} <br>
+                            <i class="fas fa-phone"></i> ${d.phone} | <span style="color:${d.severityLevel === 'critical' ? 'var(--fire)' : 'var(--text-muted)'}">${(d.severityLevel || '').toUpperCase()}</span>
+                        </div>
+                        ${d.status === 'PENDING' ? `
+                            <div class="m-actions">
+                                <button class="btn-sm btn-approve" onclick="window.updateStatus('${id}', 'IN_PROGRESS')">DEPLOY</button>
+                                <button class="btn-sm btn-abort" onclick="window.updateStatus('${id}', 'ABORT_SIGNAL')">REJECT</button>
+                            </div>
+                        ` : ''}
+                        ${d.status === 'IN_PROGRESS' ? `
+                             <div class="m-actions">
+                                <button class="btn-sm btn-abort" onclick="window.updateStatus('${id}', 'ABORT_SIGNAL')">ABORT MISSION</button>
+                            </div>
+                        ` : ''}
+                    `;
+                    
+                    div.addEventListener('click', (e) => {
+                        if(e.target.tagName !== 'BUTTON') {
+                            map.flyTo([d.lat, d.lng], 16);
+                            isTracking = false;
+                            updateTrackBtn();
+                        }
+                    });
+
+                    list.appendChild(div);
+
+                    const color = d.status === 'PENDING' ? '#ef4444' : (d.status === 'IN_PROGRESS' ? '#10b981' : '#64748b');
+                    const marker = L.circleMarker([d.lat, d.lng], {
+                        radius: 10,
+                        fillColor: color,
+                        color: "#fff",
+                        weight: 2,
+                        opacity: 1,
+                        fillOpacity: 0.9
+                    }).bindPopup(`<b>${d.label}</b><br>Severity: ${d.severityLevel}`);
+                    
+                    missionLayer.addLayer(marker);
+
+                    if (isFirst && d.status === 'PENDING' && latestMissionId !== id) {
+                        map.flyTo([d.lat, d.lng], 16, {duration: 1.5});
+                        latestMissionId = id;
+                        isTracking = false;
+                        updateTrackBtn();
+                    }
+                    isFirst = false;
+                });
+            });
+
+            // 3. DRONE TELEMETRY
+            const droneRef = doc(db, "drone_status", "drone_01");
+            
+            onSnapshot(droneRef, (snap) => {
+                if(!snap.exists()) return;
+                const data = snap.data();
+
+                document.getElementById('t-alt').innerText = (data.altitude || 0) + " m";
+                document.getElementById('t-speed').innerText = (data.speed || 0) + " m/s";
+                document.getElementById('t-batt-text').innerText = (data.battery || 0) + "%";
+                document.getElementById('t-batt-fill').style.width = (data.battery || 0) + "%";
+                
+                const fill = document.getElementById('t-batt-fill');
+                if(data.battery < 20) fill.style.background = "var(--fire)";
+                else if(data.battery < 50) fill.style.background = "var(--warning)";
+                else fill.style.background = "var(--success)";
+
+                const pill = document.getElementById('drone-pill');
+                const lastUpdate = data.last_update?.toDate();
+                const now = new Date();
+                const diff = (now - lastUpdate) / 1000;
+
+                if (diff < 5) {
+                    pill.className = "drone-status-pill online";
+                    pill.innerText = "ONLINE";
+                    document.getElementById('t-last-seen').innerText = "LIVE";
+                } else {
+                    pill.className = "drone-status-pill";
+                    pill.innerText = "OFFLINE";
+                    document.getElementById('t-last-seen').innerText = Math.floor(diff)+"s ago";
+                }
+
+                if (data.lat && data.lng && data.lat !== 0) {
+                    const newPos = [data.lat, data.lng];
+
+                    if (!map.hasLayer(droneMarker)) {
+                        droneMarker.addTo(droneLayer);
+                    }
+                    
+                    droneMarker.setLatLng(newPos);
+                    
+                    // Only add to path if the new point is reasonably close to the last one (prevents 0,0 jumps)
+                // or if the path is empty.
+                if (flightPath.length === 0) {
+                    flightPath.push(newPos);
+                } else {
+                    const lastPos = flightPath[flightPath.length - 1];
+                    const dist = map.distance(lastPos, newPos);
+                    
+                    // If distance is less than 50km, it's a valid move. 
+                    // If it's huge, it's a teleport glitch - clear path and start new.
+                    if (dist < 50000) {
+                        flightPath.push(newPos);
+                    } else {
+                        flightPath = [newPos]; // Reset path on teleport
+                    }
+                }
+
+                if (flightPath.length > 500) flightPath.shift();
+                polyline.setLatLngs(flightPath);
+
+                    // Update Rotation (Heading)
+                    // Note: Leaflet divIcons don't rotate easily, we rotate the inner img
+                    if(data.heading) {
+                        const img = document.querySelector('.drone-img');
+                        if(img) img.style.transform = `rotate(${data.heading}deg)`;
+                    }
+
+                    if (isTracking) {
+                        map.panTo(newPos, {animate: true, duration: 0.5});
+                    }
+                }
+            });
+
+            // 4. FUNCTIONS
+            window.updateStatus = async (id, status) => {
+                if (status === 'ABORT_SIGNAL' && !confirm('Abort Mission? Drone will return.')) return;
+
+                const ref = doc(db, "missions", id);
+                await updateDoc(ref, { status: status });
+
+                if (status === 'IN_PROGRESS') {
+                    const snap = await getDoc(ref);
+                    const m = snap.data();
+                    
+                    await setDoc(doc(db, "drone_commands", "drone_01"), {
+                        command: "GOTO",
+                        mission_id: id,
+                        target: { lat: m.lat, lng: m.lng },
+                        timestamp: serverTimestamp()
+                    });
+                    
+                    isTracking = true;
+                    updateTrackBtn();
+                }
+            };
+
+            window.toggleTracking = () => {
+                isTracking = !isTracking;
+                updateTrackBtn();
+                if(isTracking && droneMarker.getLatLng().lat !== 0) {
+                    map.flyTo(droneMarker.getLatLng(), 18);
+                }
+            };
+
+            function updateTrackBtn() {
+                const btn = document.getElementById('track-btn');
+                if(isTracking) {
+                    btn.style.background = "var(--accent)";
+                    btn.style.color = "white";
+                    btn.innerHTML = '<i class="fas fa-lock"></i> TRACKING DRONE';
+                } else {
+                    btn.style.background = "transparent";
+                    btn.style.color = "var(--accent)";
+                    btn.innerHTML = '<i class="fas fa-crosshairs"></i> LOCK CAMERA';
+                }
             }
-        };
+
+            window.clearHistory = async () => {
+                if(confirm("Delete ALL mission history?")) {
+                    const s = await getDocs(collection(db, "missions"));
+                    s.forEach(d => deleteDoc(d.ref));
+                    flightPath = [];
+                    polyline.setLatLngs([]);
+                }
+            };
+
+            window.exportCSV = async () => {
+                const snap = await getDocs(query(collection(db, "missions"), orderBy("timestamp", "desc")));
+                let csv = "Status,Label,Latitude,Longitude,Phone,ReporterName,Severity,Date,Time\n";
+                
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    const dateObj = d.timestamp?.toDate();
+                    const date = dateObj ? dateObj.toLocaleDateString() : '';
+                    const time = dateObj ? dateObj.toLocaleTimeString() : '';
+                    
+                    csv += `"${d.status}","${d.label||''}","${d.lat}","${d.lng}","${d.phone}","${d.reporterName||''}","${d.severityLevel||''}","${date}","${time}"\n`;
+                });
+
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `FFUAV_Report_${new Date().toISOString().slice(0,10)}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+        }
     </script>
 </body>
 </html>
