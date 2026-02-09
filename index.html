@@ -6,10 +6,12 @@
     <meta name="description" content="FFUAV Emergency Drone Dispatch System">
     <meta name="theme-color" content="#1f2937">
     <title>FFUAV - Emergency Drone Dispatch System</title>
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
     
     <style>
+        /* --- CORE STYLES --- */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         :root {
@@ -27,41 +29,26 @@
         html, body { height: 100%; overflow: hidden; }
         
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
             background: linear-gradient(135deg, var(--dark) 0%, var(--primary) 100%);
             color: var(--text);
         }
 
         #map { height: 100vh; width: 100%; z-index: 1; }
 
-        /* ==================== TOP STATUS BAR ==================== */
+        /* --- STATUS BAR --- */
         #system-status {
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            padding: 12px 20px;
-            text-align: center;
-            font-weight: 700;
-            font-size: 13px;
-            color: white;
-            z-index: 2000;
+            position: absolute; top: 0; left: 0; right: 0;
+            padding: 12px 20px; text-align: center; font-weight: 700;
+            font-size: 13px; color: white; z-index: 2000;
             box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-            text-transform: uppercase;
-            letter-spacing: 1.2px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
+            text-transform: uppercase; letter-spacing: 1.2px;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
             transition: all 0.3s ease;
         }
 
-        .status-ready { 
-            background: linear-gradient(90deg, var(--primary), var(--accent));
-        }
-
-        .status-busy { 
-            background: linear-gradient(90deg, var(--secondary), #991b1b);
-            animation: pulse-danger 2s infinite;
-        }
+        .status-ready { background: linear-gradient(90deg, var(--primary), var(--accent)); }
+        .status-busy { background: linear-gradient(90deg, var(--secondary), #991b1b); animation: pulse-danger 2s infinite; }
 
         @keyframes pulse-danger {
             0%, 100% { opacity: 1; }
@@ -69,287 +56,116 @@
         }
 
         .status-icon {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: white;
-            animation: blink 1s infinite;
+            width: 8px; height: 8px; border-radius: 50%; background: white; animation: blink 1s infinite;
         }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-
-        /* ==================== FLOATING CARDS ==================== */
-        .info-btn {
-            position: absolute;
-            top: 60px;
-            right: 20px;
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background: white;
-            border: 2px solid var(--accent);
-            color: var(--accent);
-            font-weight: bold;
-            font-size: 20px;
-            cursor: pointer;
-            z-index: 2000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-        }
-
-        .info-btn:hover { 
-            transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(6, 182, 212, 0.3);
-        }
-
+        /* --- UI CARD --- */
         .mission-card {
-            position: absolute;
-            top: 70px;
-            left: 20px;
-            transform: none;
-        
-            width: 360px;
-            max-width: 90vw;
-        
-            max-height: calc(100vh - 100px);
-            overflow-y: auto;
-        
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-            z-index: 1000;
-        
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-        
-            border-left: 4px solid var(--accent);
+            position: absolute; top: 70px; left: 20px;
+            width: 360px; max-width: 90vw; max-height: calc(100vh - 100px);
+            overflow-y: auto; background: white; padding: 20px;
+            border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            z-index: 1000; display: flex; flex-direction: column; gap: 14px;
+            border-left: 4px solid var(--accent); transition: all 0.3s ease;
         }
 
         .card-disabled { 
-            opacity: 0.6; 
-            pointer-events: none; 
-            filter: grayscale(0.5);
+            opacity: 0.6; pointer-events: none; filter: grayscale(0.8);
         }
 
         .header-row { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            border-bottom: 1px solid var(--border); 
-            padding-bottom: 14px; 
-            gap: 12px;
+            display: flex; justify-content: space-between; align-items: center; 
+            border-bottom: 1px solid var(--border); padding-bottom: 14px; 
         }
 
-        .title { 
-            font-weight: 700; 
-            color: var(--primary);
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
+        .title { font-weight: 700; color: var(--primary); font-size: 18px; display: flex; align-items: center; gap: 8px; }
         .title i { color: var(--accent); }
 
         .coords-display { 
-            font-family: 'Courier New', monospace; 
-            color: var(--accent);
-            background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(6, 182, 212, 0.05));
-            padding: 8px 12px; 
-            border-radius: 6px; 
-            font-size: 12px; 
-            border: 1px solid rgba(6, 182, 212, 0.3);
-            font-weight: 600;
-            letter-spacing: 0.5px;
+            font-family: monospace; color: var(--accent); background: rgba(6, 182, 212, 0.1);
+            padding: 6px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;
         }
 
-        .action-row { 
-            display: flex; 
-            gap: 12px; 
-            flex-wrap: wrap;
-        }
+        /* --- INPUTS --- */
+        .field-section { display: flex; flex-direction: column; gap: 6px; }
+        .field-label { font-size: 11px; font-weight: 700; color: var(--primary); text-transform: uppercase; }
+        .required-indicator { color: var(--secondary); }
 
-        input, textarea, select { 
-            flex: 1;
-            min-width: 120px;
-            padding: 12px 14px; 
-            border: 1.5px solid var(--border); 
-            border-radius: 8px; 
-            outline: none; 
-            font-size: 14px;
-            font-family: inherit;
-            transition: all 0.2s ease;
-            background: white;
-            width: 100%;
+        input, select { 
+            width: 100%; padding: 12px; border: 1.5px solid var(--border); 
+            border-radius: 8px; outline: none; font-size: 14px; transition: all 0.2s;
         }
+        input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1); }
 
-        input:focus, textarea:focus, select:focus { 
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
-        }
-
+        /* --- BUTTONS --- */
+        .action-row { display: flex; gap: 10px; }
+        
         button { 
-            padding: 12px 18px; 
-            border: none; 
-            border-radius: 8px; 
-            font-weight: 700; 
-            cursor: pointer; 
-            transition: all 0.2s ease;
-            font-size: 13px; 
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
+            padding: 12px; border: none; border-radius: 8px; font-weight: 700; 
+            cursor: pointer; transition: all 0.2s; font-size: 13px; text-transform: uppercase;
+            display: flex; align-items: center; justify-content: center; gap: 6px; flex: 1;
         }
 
-        .btn-primary { 
-            background: var(--accent);
-            color: white;
-            flex: 1;
-        }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: #0e7490; transform: translateY(-1px); }
 
-        .btn-deploy { 
-            background: linear-gradient(135deg, var(--secondary), #991b1b);
-            color: white; 
-            flex: 1;
-        }
+        .btn-deploy { background: linear-gradient(135deg, var(--secondary), #991b1b); color: white; }
+        .btn-deploy:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3); }
+        .btn-deploy:disabled { background: #d1d5db; cursor: not-allowed; opacity: 0.7; }
 
-        .btn-deploy:disabled { 
-            background: #d1d5db;
-            cursor: not-allowed;
-            opacity: 0.6;
+        /* --- ALERTS --- */
+        .emergency-warning { 
+            background: #fee2e2; color: #991b1b; padding: 12px; border-radius: 8px;
+            font-size: 12px; font-weight: 700; text-align: center; display: none;
+            border: 1px solid #fecaca; animation: shake 0.5s ease-in-out;
         }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
 
         .status-msg { 
-            text-align: center; 
-            font-size: 13px; 
-            min-height: 20px; 
-            font-weight: 600;
-            animation: fadeIn 0.3s ease;
-            margin-top: 5px;
+            text-align: center; font-size: 13px; font-weight: 600; min-height: 20px; margin-top: 5px; 
         }
-
         .status-msg.success { color: var(--success); }
         .status-msg.error { color: var(--secondary); }
 
-        .emergency-warning { 
-            color: white;
-            font-weight: 700; 
-            text-align: center; 
-            display: none; 
-            background: linear-gradient(135deg, var(--secondary), #991b1b);
-            padding: 14px; 
-            border-radius: 8px;
-            font-size: 12px; 
-            animation: shake 0.5s ease-in-out;
+        /* --- INFO BUTTON --- */
+        .info-btn {
+            position: absolute; top: 60px; right: 20px; width: 40px; height: 40px;
+            border-radius: 50%; background: white; border: 2px solid var(--accent);
+            color: var(--accent); font-size: 18px; cursor: pointer; z-index: 2000;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
 
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
-        }
-
-        /* Loading Spinner */
+        /* --- SPINNER --- */
         .spinner {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border: 2px solid rgba(255, 255, 255, 0.5);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
+            display: inline-block; width: 12px; height: 12px;
+            border: 2px solid rgba(255,255,255,0.5); border-top-color: white;
+            border-radius: 50%; animation: spin 0.8s linear infinite;
         }
-
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* Field Styling */
-        .field-section {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .field-label {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--primary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .required-indicator { color: var(--secondary); font-weight: 700; }
-
-        /* Modal Styles */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6); z-index: 3000; display: none; 
-            align-items: center; justify-content: center; backdrop-filter: blur(3px);
-        }
-        .modal-box {
-            background: white; padding: 32px; border-radius: 12px; 
-            max-width: 420px; width: 90%; box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-            position: relative;
-        }
-        .close-modal { 
-            position: absolute; top: 16px; right: 16px; font-size: 28px; 
-            cursor: pointer; color: #d1d5db; width: 32px; height: 32px;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .info-item { margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
-        .info-label { font-size: 11px; color: #9ca3af; text-transform: uppercase; font-weight: 600; }
-        .info-value { font-size: 18px; font-weight: 700; color: var(--primary); display: block; margin-top: 4px; }
-        .highlight { color: var(--secondary); font-weight: 800; }
-
-        /* Responsive */
+        /* --- RESPONSIVE --- */
         @media (max-width: 768px) {
-            .mission-card {
-                width: calc(100% - 20px); left: 10px; right: 10px; top: auto; bottom: 10px; max-height: 60vh;
-            }
+            .mission-card { width: calc(100% - 20px); left: 10px; bottom: 10px; top: auto; max-height: 60vh; }
         }
     </style>
 </head>
 <body>
-    <div class="modal-overlay" id="info-modal">
-        <div class="modal-box">
-            <span class="close-modal" onclick="closeModal()">&times;</span>
-            <div style="font-size: 20px; font-weight: 700; color: var(--primary); margin-bottom: 20px;">
-                <i class="fas fa-info-circle"></i> Emergency Info
-            </div>
-            <div class="info-item"><span class="info-label">Fire Services</span><span class="info-value highlight">101</span></div>
-            <div class="info-item"><span class="info-label">National Emergency</span><span class="info-value highlight">112</span></div>
-            <div class="info-item"><span class="info-label">Ambulance</span><span class="info-value">102</span></div>
-            <div style="font-size: 12px; color: #6b7280; background: var(--light); padding: 12px; border-left: 3px solid var(--warning); border-radius: 4px;">
-                <strong>Important:</strong> FFUAV is an autonomous aid. Always call 101/112 in life-threatening situations.
-            </div>
-        </div>
-    </div>
 
     <div id="system-status" class="status-ready">
         <span class="status-icon"></span>
         System Status: Connecting...
     </div>
 
-    <button class="info-btn" onclick="openModal()" title="Emergency information">
-        <i class="fas fa-info-circle"></i>
+    <button class="info-btn" onclick="alert('Emergency Contacts:\nFire: 101\nAmbulance: 102\nPolice: 100')">
+        <i class="fas fa-info"></i>
     </button>
 
     <div class="mission-card" id="main-card">
         <div class="header-row">
             <span class="title">
-                <i class="fas fa-helicopter"></i>
-                Dispatch Control
+                <i class="fas fa-helicopter"></i> Dispatch
             </span>
             <span class="coords-display" id="coords-text">
                 <i class="fas fa-location-dot"></i> Select Location
@@ -357,45 +173,45 @@
         </div>
 
         <div id="busy-warning" class="emergency-warning">
-            SYSTEM BUSY: DRONE IN FLIGHT
-            CONTACT 101 FOR CRITICAL SITUATIONS
+            <i class="fas fa-exclamation-triangle"></i> SYSTEM BUSY: DRONE DEPLOYED<br>
+            Please wait or call Emergency Services
         </div>
 
         <div class="field-section">
-            <label class="field-label">Full Name <span class="required-indicator">*</span></label>
-            <input type="text" id="reporter-name" placeholder="Enter your name" required>
+            <label class="field-label">Name <span class="required-indicator">*</span></label>
+            <input type="text" id="reporter-name" placeholder="Your Full Name" required>
         </div>
 
         <div class="field-section">
-            <label class="field-label">Severity Level <span class="required-indicator">*</span></label>
+            <label class="field-label">Severity <span class="required-indicator">*</span></label>
             <select id="severity-level" required>
-                <option value="">Select severity...</option>
-                <option value="low">Low (Contained)</option>
-                <option value="medium">Medium (Spreading)</option>
-                <option value="high">High (Out of Control)</option>
-                <option value="critical">Critical (Threat to Life)</option>
+                <option value="">Select Level...</option>
+                <option value="low">Low (Smoke/Small Fire)</option>
+                <option value="medium">Medium (Visible Flames)</option>
+                <option value="high">High (Spreading Rapidly)</option>
+                <option value="critical">CRITICAL (Life Threatening)</option>
             </select>
         </div>
 
+        <div class="field-section">
+            <label class="field-label">Phone <span class="required-indicator">*</span></label>
+            <input type="tel" id="phone" placeholder="10-Digit Number" maxlength="10" required>
+        </div>
+
+        <div class="field-section">
+            <label class="field-label">Landmark</label>
+            <input type="text" id="label" placeholder="e.g., Behind City Mall">
+        </div>
+
         <div class="action-row">
-            <button class="btn-primary" onclick="useMyLocation()" title="Use GPS">
-                <i class="fas fa-location-crosshairs"></i> My Location
+            <button class="btn-primary" onclick="useMyLocation()">
+                <i class="fas fa-crosshairs"></i> My Location
             </button>
-        </div>
-
-        <div class="field-section">
-            <label class="field-label">Phone Number <span class="required-indicator">*</span></label>
-            <input type="tel" id="phone" placeholder="10-Digit Phone Number" maxlength="10" required>
-        </div>
-
-        <div class="field-section">
-            <label class="field-label">Landmark (Optional)</label>
-            <input type="text" id="label" placeholder="e.g., Near Central Park">
         </div>
 
         <div class="action-row">
             <button id="deployBtn" class="btn-deploy" onclick="sendMission()" disabled>
-                TRANSMIT COORDINATES
+                SEND ALERT
             </button>
         </div>
         <div class="status-msg" id="status-msg"></div>
@@ -415,23 +231,20 @@
             onSnapshot 
         } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+        // --- FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyD3j2PpWAjlOQo-8x22EIECrAvbYfwtvng",
             authDomain: "autonomous-ff-uav.firebaseapp.com",
             projectId: "autonomous-ff-uav",
-            storageBucket: "autonomous-ff-uav.firebasestorage.app",
-            messagingSenderId: "701161445134",
-            appId: "1:701161445134:web:2179fffa8747061723695f"
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Initialize Map
+        // --- MAP SETUP ---
         const map = L.map('map').setView([12.9141, 74.8560], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
-            maxZoom: 19
+            attribution: '© OpenStreetMap'
         }).addTo(map);
 
         let marker;
@@ -439,45 +252,51 @@
         let selectedLng = null;
         let isSystemBusy = false;
 
-        // Modal Logic
-        window.openModal = () => document.getElementById('info-modal').style.display = 'flex';
-        window.closeModal = () => document.getElementById('info-modal').style.display = 'none';
-        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
-
-        // --- PUBLIC STATUS LISTENER ---
-        // We listen to the drone_status document because "missions" is now private
-        onSnapshot(doc(db, "drone_status", "drone_01"), (docSnap) => {
+        // --- STATUS MONITOR ---
+        // Listens to the 'system_busy' flag set by the Admin
+        const statusRef = doc(db, "drone_status", "drone_01");
+        
+        onSnapshot(statusRef, (docSnap) => {
             const statusDiv = document.getElementById('system-status');
             const card = document.getElementById('main-card');
             const warning = document.getElementById('busy-warning');
 
-            if (!docSnap.exists()) return;
+            // Default to free if doc doesn't exist yet
+            if (!docSnap.exists()) {
+                setUIFree();
+                return;
+            }
+
             const data = docSnap.data();
-            
-            // The 'system_busy' flag is updated by the Admin panel
             isSystemBusy = data.system_busy === true;
 
             if (isSystemBusy) {
-                statusDiv.innerHTML = '<span class="status-icon"></span>System Status: BUSY (Mission Active)';
+                // SYSTEM BUSY UI
+                statusDiv.innerHTML = '<span class="status-icon"></span> STATUS: BUSY (Mission Active)';
                 statusDiv.className = "status-busy";
                 card.classList.add("card-disabled");
                 warning.style.display = "block";
             } else {
-                statusDiv.innerHTML = '<span class="status-icon"></span>System Status: ONLINE (Ready)';
+                // SYSTEM FREE UI
+                setUIFree();
+            }
+
+            function setUIFree() {
+                statusDiv.innerHTML = '<span class="status-icon"></span> STATUS: ONLINE (Ready)';
                 statusDiv.className = "status-ready";
                 card.classList.remove("card-disabled");
                 warning.style.display = "none";
             }
         });
 
-        // Map Click Logic
+        // --- MAP CLICK ---
         map.on('click', function(e) {
             if (isSystemBusy) {
-                showStatus('System is busy. Cannot select new location.', 'error');
+                showStatus('System is busy. Please call 101.', 'error');
                 return;
             }
             updatePosition(e.latlng.lat, e.latlng.lng);
-            showStatus('Location selected', 'success');
+            showStatus('Location selected.', 'success');
         });
 
         window.updatePosition = function(lat, lng) {
@@ -496,97 +315,93 @@
             }).addTo(map);
             
             document.getElementById('coords-text').innerHTML = `
-                <i class="fas fa-location-dot"></i>
-                ${lat.toFixed(5)}, ${lng.toFixed(5)}
+                <i class="fas fa-location-dot"></i> ${lat.toFixed(4)}, ${lng.toFixed(4)}
             `;
             document.getElementById('deployBtn').disabled = false;
         };
 
         window.useMyLocation = function() {
-            const btn = event.target.closest('button');
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner"></span> Locating...';
-
+            const btn = document.querySelector('.btn-primary');
+            btn.innerHTML = '<div class="spinner"></div> Locating...';
+            
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     pos => {
-                        const lat = pos.coords.latitude;
-                        const lng = pos.coords.longitude;
-                        map.setView([lat, lng], 15);
-                        updatePosition(lat, lng);
-                        btn.disabled = false;
-                        btn.innerHTML = '<i class="fas fa-location-crosshairs"></i> My Location';
-                        showStatus('Location acquired', 'success');
+                        const { latitude, longitude } = pos.coords;
+                        map.setView([latitude, longitude], 16);
+                        updatePosition(latitude, longitude);
+                        btn.innerHTML = '<i class="fas fa-crosshairs"></i> My Location';
                     },
                     err => {
-                        btn.disabled = false;
-                        btn.innerHTML = '<i class="fas fa-location-crosshairs"></i> My Location';
-                        showStatus('Unable to get location.', 'error');
+                        showStatus("GPS Error: " + err.message, "error");
+                        btn.innerHTML = '<i class="fas fa-crosshairs"></i> My Location';
                     }
                 );
             } else {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-location-crosshairs"></i> My Location';
-                showStatus('Geolocation not supported.', 'error');
+                showStatus("Geolocation not supported", "error");
+                btn.innerHTML = '<i class="fas fa-crosshairs"></i> My Location';
             }
         };
 
         window.showStatus = function(msg, type = '') {
-            const statusDiv = document.getElementById('status-msg');
-            statusDiv.innerText = msg;
-            statusDiv.className = 'status-msg ' + type;
+            const el = document.getElementById('status-msg');
+            el.innerText = msg;
+            el.className = 'status-msg ' + type;
         };
 
-        window.validatePhoneNumber = function(phone) {
-            const phoneRegex = /^[0-9]{10}$/;
-            return phoneRegex.test(phone);
+        window.validateForm = function() {
+            const name = document.getElementById('reporter-name').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const sev = document.getElementById('severity-level').value;
+
+            if (!name) return "Name is required";
+            if (!sev) return "Severity is required";
+            if (!phone || phone.length !== 10 || isNaN(phone)) return "Valid 10-digit phone required";
+            if (!selectedLat) return "Select location on map";
+            return null;
         };
 
         window.sendMission = async function() {
-            if(isSystemBusy) {
-                showStatus('System is busy.', 'error');
+            if (isSystemBusy) return;
+
+            const error = validateForm();
+            if (error) {
+                showStatus(error, 'error');
                 return;
             }
 
-            const reporterName = document.getElementById('reporter-name').value.trim();
-            const phone = document.getElementById('phone').value.trim();
-            const severityLevel = document.getElementById('severity-level').value;
-            const label = document.getElementById('label').value || "Fire Report";
-            
-            if (!reporterName) { showStatus('Name is required.', 'error'); return; }
-            if (!severityLevel) { showStatus('Select severity.', 'error'); return; }
-            if (!phone) { showStatus('Phone is required.', 'error'); return; }
-            if (!validatePhoneNumber(phone)) { showStatus('Invalid phone number.', 'error'); return; }
-            if (!selectedLat) { showStatus('Select location on map.', 'error'); return; }
-
             const btn = document.getElementById('deployBtn');
-            btn.innerHTML = '<span class="spinner"></span> Transmitting...';
+            btn.innerHTML = '<div class="spinner"></div> Sending...';
             btn.disabled = true;
 
+            const data = {
+                reporterName: document.getElementById('reporter-name').value.trim(),
+                phone: document.getElementById('phone').value.trim(),
+                severityLevel: document.getElementById('severity-level').value,
+                label: document.getElementById('label').value.trim() || "Emergency Report",
+                lat: selectedLat,
+                lng: selectedLng,
+                alt: 15.0,
+                status: "PENDING",
+                timestamp: serverTimestamp()
+            };
+
             try {
-                // Public write access is allowed by rules
-                await addDoc(collection(db, "missions"), {
-                    lat: selectedLat,
-                    lng: selectedLng,
-                    alt: 15.0,
-                    phone: phone,
-                    reporterName: reporterName,
-                    severityLevel: severityLevel,
-                    label: label,
-                    status: "PENDING",
-                    timestamp: serverTimestamp()
-                });
-                showStatus('Alert Sent Successfully!', 'success');
+                // Write to 'missions' collection (Public Write Allowed)
+                await addDoc(collection(db, "missions"), data);
+                
+                showStatus('Alert Sent! Waiting for Dispatch...', 'success');
                 btn.innerText = 'SENT';
                 
-                // Optimistic UI update
-                isSystemBusy = true;
-                document.getElementById('busy-warning').style.display = "block";
-                document.getElementById('main-card').classList.add("card-disabled");
+                // Reset form slightly
+                setTimeout(() => {
+                    document.getElementById('label').value = "";
+                    marker.closePopup();
+                }, 2000);
 
             } catch (e) {
-                console.error("Error: ", e);
-                showStatus('Transmission failed.', 'error');
+                console.error("Transmission Error:", e);
+                showStatus('Failed to send. Check internet.', 'error');
                 btn.disabled = false;
                 btn.innerText = 'TRANSMIT COORDINATES';
             }
