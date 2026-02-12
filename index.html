@@ -407,42 +407,16 @@
             };
         
             try {
-        
                 await addDoc(collection(db, "missions"), data);
         
                 showStatus('Alert Sent! Waiting for Admin approval...', 'success');
                 btn.innerText = 'SENT';
-        
-                // DO NOT manually lock UI here.
-                // Admin panel must update drone_status/system_busy
         
             } catch (e) {
                 console.error("Transmission Error:", e);
                 showStatus('Failed to send. Check internet.', 'error');
                 btn.disabled = false;
                 btn.innerText = 'SEND ALERT';
-            }
-        };
-        
-    
-            try {
-                // Public Write Access is allowed by rules
-                await addDoc(collection(db, "missions"), data);
-                
-                showStatus('Alert Sent! Waiting for Dispatch...', 'success');
-                btn.innerText = 'SENT';
-                
-                // Reset form slightly
-                setTimeout(() => {
-                    document.getElementById('label').value = "";
-                    marker.closePopup();
-                }, 2000);
-    
-            } catch (e) {
-                console.error("Transmission Error:", e);
-                showStatus('Failed to send. Check internet.', 'error');
-                btn.disabled = false;
-                btn.innerText = 'TRANSMIT COORDINATES';
             }
         };
     </script>
