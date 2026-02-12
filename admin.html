@@ -134,6 +134,10 @@
             display: flex; justify-content: space-between; align-items: center; 
             margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
         }
+        .drone-img {
+            transition: transform 0.2s linear;
+        }
+        
         .drone-status-pill {
             font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 10px;
             background: var(--border); color: var(--text-muted);
@@ -347,11 +351,18 @@
 
             // Drone Icon
             const droneIcon = L.divIcon({
-                html: '<img src="https://cdn-icons-png.flaticon.com/512/3256/3256195.png" class="drone-img">',
-                className: 'drone-marker-icon',
-                iconSize: [40, 40],
-                iconAnchor: [20, 20] 
+                className: '',
+                html: `
+                    <div style="width:50px;height:50px;transform-origin:center;">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Drone_icon.svg"
+                             style="width:50px;height:50px;filter:drop-shadow(0 6px 12px rgba(0,0,0,0.5));"
+                             class="drone-img">
+                    </div>
+                `,
+                iconSize: [50, 50],
+                iconAnchor: [25, 25]
             });
+            
 
             let droneMarker = L.marker([0,0], {icon: droneIcon}); 
             let flightPath = [];
