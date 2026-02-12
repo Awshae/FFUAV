@@ -526,36 +526,48 @@
                     if (isTracking) map.panTo(newPos, {animate: true, duration: 0.5});
                 }
             });
-
             // 4. ACTION FUNCTIONS
             window.updateStatus = async (id, status) => {
-                if (status === 'ABORT_SIGNAL') {
-                    // Don't show confirm dialog if called automatically by code (when status is unknown/system)
-                    // But for button clicks, we want confirmation. 
-                    // To keep it simple, we just confirm always unless you change logic.
-                    // For auto-landing logic, the user might not be at the screen.
-                }
 
-                const ref = doc(db, "missions", id);
-                await updateDoc(ref, { status: status });
-
+                const missionRef = doc(db, "missions", id);
+                const droneStatusRef = doc(db, "drone_status", "drone_01");
+            
+                // 1️⃣ Update mission status
+                await updateDoc(missionRef, { status: status });
+            
+                // 2️⃣ When mission starts → mark system busy
                 if (status === 'IN_PROGRESS') {
-                    const snap = await getDoc(ref);
+            
+                    // 🔴 SET BUSY TRUE
+                    await updateDoc(droneStatusRef, {
+                        system_busy: true
+                    });
+            
+                    const snap = await getDoc(missionRef);
                     const m = snap.data();
-                    
+            
                     await setDoc(doc(db, "drone_commands", "drone_01"), {
                         command: "GOTO",
                         mission_id: id,
                         target: { lat: m.lat, lng: m.lng },
                         timestamp: serverTimestamp()
                     });
-                    
+            
                     isTracking = true;
                     updateTrackBtn();
-                    hasTakenOff = false; // Reset trigger for new flight
+                    hasTakenOff = false;
+                }
+            
+                // 3️⃣ When mission ends → free system
+                if (
+                    status === 'ABORT_SIGNAL' ||
+                    status === 'COMPLETED'
+                ) {
+                    await updateDoc(droneStatusRef, {
+                        system_busy: false
+                    });
                 }
             };
-
             window.toggleTracking = () => {
                 isTracking = !isTracking;
                 updateTrackBtn();
