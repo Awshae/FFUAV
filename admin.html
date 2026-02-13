@@ -442,17 +442,34 @@
             });
 
             // 3. DRONE TELEMETRY
-            const droneRef = doc(db, "drone_status", "drone_01");
-            
-            onSnapshot(droneRef, (snap) => {
-                if(!snap.exists()) return;
-                const data = snap.data();
+            // --- FORMAT FUNCTION (max 4 characters) ---
+            function format4(value) {
+                if (typeof value !== "number") return "--";
 
-                // --- UI UPDATES ---
-                document.getElementById('t-alt').innerText = (data.altitude || 0) + " m";
-                document.getElementById('t-speed').innerText = (data.speed || 0) + " m/s";
-                document.getElementById('t-batt-text').innerText = (data.battery || 0) + "%";
-                document.getElementById('t-batt-fill').style.width = (data.battery || 0) + "%";
+                // Try 2 decimal places first
+                let str = value.toFixed(2);
+
+                // If longer than 4 characters, reduce decimals
+                if (str.length > 4) {
+                    str = value.toFixed(1);
+                }
+                if (str.length > 4) {
+                    str = Math.round(value).toString();
+                }
+
+                return str;
+            }
+
+            // --- UI UPDATES ---
+            document.getElementById('t-alt').innerText =
+                format4(data.altitude || 0) + " m";
+
+            document.getElementById('t-speed').innerText =
+                format4(data.speed || 0) + " m/s";
+
+            document.getElementById('t-batt-text').innerText =
+                format4(data.battery || 0) + "%";
+
                 
                 const fill = document.getElementById('t-batt-fill');
                 if(data.battery < 20) fill.style.background = "var(--fire)";
