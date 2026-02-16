@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="FFUAV Emergency Drone Dispatch System">
+    <meta name="theme-color" content="#1f2937">
+    <title>FFUAV - Emergency Drone Dispatch System</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+    
+    <style>
+        /* --- PROFESSIONAL CORE STYLES --- */
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+        }
+        
+        :root {
+            /* Original inspired palette - refined */
+            --primary: #1f2937;
+            --secondary: #dc2626;
+            --accent: #0891b2;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --dark: #111827;
+            --light: #f3f4f6;
+            --border: #e5e7eb;
+            --text: #374151;
+            --text-light: #6b7280;
+            --white: #ffffff;
+            
+            /* Professional glassmorphism */
+            --glass-bg: rgba(255, 255, 255, 0.95);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --glass-shadow: 0 8px 32px rgba(31, 41, 55, 0.1);
+            
+            /* Refined shadows */
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
+            --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.15);
+            --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.2);
+        }
+
+        html, body { 
+            height: 100%; 
+            overflow: hidden; 
+        }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, var(--dark) 0%, var(--primary) 50%, #1a2332 100%);
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            position: relative;
+        }
+
+        /* Subtle professional overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 30% 20%, rgba(8, 145, 178, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 80%, rgba(220, 38, 38, 0.06) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        #map { 
+            height: 100vh; 
+            width: 100%; 
+            z-index: 1;
+        }
+
+        /* --- REFINED STATUS BAR --- */
+        #system-status {
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            right: 0;
+            padding: 16px 28px; 
+            text-align: center; 
+            font-weight: 700;
+            font-size: 13px; 
+            color: var(--white); 
+            z-index: 2000;
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            text-transform: uppercase; 
+            letter-spacing: 1.2px;
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 10px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .status-ready { 
+            background: linear-gradient(90deg, rgba(8, 145, 178, 0.95), rgba(6, 182, 212, 0.95));
+            box-shadow: 0 4px 24px rgba(8, 145, 178, 0.25);
+        }
+        
+        .status-busy { 
+            background: linear-gradient(90deg, rgba(220, 38, 38, 0.95), rgba(239, 68, 68, 0.95));
+            animation: statusPulse 2s ease-in-out infinite;
+            box-shadow: 0 4px 24px rgba(220, 38, 38, 0.3);
+        }
+
+        @keyframes statusPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.9; }
+        }
+
+        .status-icon {
+            width: 10px; 
+            height: 10px; 
+            border-radius: 50%; 
+            background: var(--white); 
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.8);
+            animation: statusBlink 2s ease-in-out infinite;
+        }
+        
+        @keyframes statusBlink { 
+            0%, 100% { opacity: 1; } 
+            50% { opacity: 0.4; } 
+        }
+
+        /* --- PROFESSIONAL GLASSMORPHIC CARD --- */
+        .mission-card {
+            position: absolute; 
+            top: 75px; 
+            left: 28px;
+            width: 420px; 
+            max-width: calc(100vw - 56px); 
+            max-height: calc(100vh - 115px);
+            overflow: hidden;
+            background: var(--glass-bg);
+            backdrop-filter: blur(30px) saturate(180%);
+            -webkit-backdrop-filter: blur(30px) saturate(180%);
+            padding: 0;
+            border-radius: 20px; 
+            box-shadow: var(--shadow-xl);
+            z-index: 1000; 
+            border: 1px solid var(--glass-border);
+            animation: cardEntrance 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            overflow-y: auto;
+        }
+
+        @keyframes cardEntrance {
+            0% { 
+                opacity: 0; 
+                transform: translateY(30px) scale(0.95);
+            }
+            100% { 
+                opacity: 1; 
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .card-content {
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+        }
+
+        .mission-card::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .mission-card::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 10px;
+        }
+
+        .mission-card::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 10px;
+            transition: background 0.2s;
+        }
+
+        .mission-card::-webkit-scrollbar-thumb:hover {
+            background: #0e7490;
+        }
+
+        .card-disabled { 
+            opacity: 0.6; 
+            pointer-events: none; 
+            filter: grayscale(0.5);
+        }
+
+        .header-row { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding-bottom: 22px; 
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 6px;
+        }
+
+        .title { 
+            font-weight: 700; 
+            color: var(--primary); 
+            font-size: 22px; 
+            display: flex; 
+            align-items: center; 
+            gap: 12px;
+            letter-spacing: -0.3px;
+        }
+        
+        .title i { 
+            color: var(--accent); 
+            font-size: 24px;
+        }
+
+        .coords-display { 
+            font-family: 'SF Mono', 'Monaco', 'Courier New', monospace; 
+            color: var(--accent); 
+            background: rgba(8, 145, 178, 0.08);
+            padding: 10px 14px; 
+            border-radius: 10px; 
+            font-size: 11px; 
+            font-weight: 600;
+            border: 1px solid rgba(8, 145, 178, 0.15);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: 0.3px;
+        }
+
+        .coords-display:hover {
+            background: rgba(8, 145, 178, 0.12);
+            border-color: rgba(8, 145, 178, 0.25);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* --- REFINED INPUTS --- */
+        .field-section { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 8px;
+        }
+        
+        .field-label { 
+            font-size: 12px; 
+            font-weight: 600; 
+            color: var(--primary); 
+            text-transform: uppercase; 
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .required-indicator { 
+            color: var(--secondary); 
+            font-size: 14px;
+        }
+
+        input, select { 
+            width: 100%; 
+            padding: 14px 16px; 
+            border: 2px solid var(--border); 
+            border-radius: 12px; 
+            outline: none; 
+            font-size: 14px; 
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            background: var(--white);
+            color: var(--text);
+            font-family: inherit;
+            font-weight: 400;
+        }
+        
+        input:focus, select:focus { 
+            border-color: var(--accent); 
+            box-shadow: 0 0 0 4px rgba(8, 145, 178, 0.1); 
+            transform: translateY(-1px);
+        }
+
+        input::placeholder {
+            color: var(--text-light);
+        }
+
+        select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Cpath fill='%23374151' d='M7 10L2 5h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            padding-right: 40px;
+        }
+
+        select option {
+            background: var(--white);
+            color: var(--text);
+            padding: 10px;
+        }
+
+        /* --- PROFESSIONAL BUTTONS --- */
+        .action-row { 
+            display: flex; 
+            gap: 12px; 
+        }
+        
+        button { 
+            padding: 15px 22px; 
+            border: none; 
+            border-radius: 12px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
+            font-size: 14px; 
+            text-transform: none;
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 8px; 
+            flex: 1;
+            letter-spacing: 0.2px;
+            font-family: inherit;
+        }
+
+        .btn-primary { 
+            background: var(--accent);
+            color: var(--white);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .btn-primary:hover:not(:disabled) { 
+            background: #0e7490; 
+            transform: translateY(-2px); 
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-primary:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-deploy { 
+            background: linear-gradient(135deg, var(--secondary) 0%, #ef4444 100%);
+            color: var(--white);
+            box-shadow: var(--shadow-sm);
+            font-weight: 700;
+        }
+        
+        .btn-deploy:hover:not(:disabled) { 
+            transform: translateY(-2px); 
+            box-shadow: var(--shadow-md);
+        }
+        
+        .btn-deploy:disabled { 
+            background: #d1d5db; 
+            cursor: not-allowed; 
+            opacity: 0.6; 
+            box-shadow: none;
+        }
+
+        .btn-deploy:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* --- PROFESSIONAL ALERTS --- */
+        .emergency-warning { 
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #991b1b; 
+            padding: 16px 18px; 
+            border-radius: 12px;
+            font-size: 13px; 
+            font-weight: 600; 
+            text-align: center; 
+            display: none;
+            border: 2px solid #fca5a5;
+            line-height: 1.6;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .emergency-warning i {
+            font-size: 16px;
+            margin-right: 6px;
+        }
+
+        .status-msg { 
+            text-align: center; 
+            font-size: 13px; 
+            font-weight: 600; 
+            min-height: 20px; 
+            margin-top: 4px;
+            padding: 12px;
+            border-radius: 10px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .status-msg.success { 
+            color: var(--success); 
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+        
+        .status-msg.error { 
+            color: var(--secondary); 
+            background: rgba(220, 38, 38, 0.1);
+            border: 1px solid rgba(220, 38, 38, 0.2);
+        }
+
+        /* --- REFINED INFO BUTTON --- */
+        .info-btn {
+            position: absolute; 
+            top: 70px; 
+            right: 28px; 
+            width: 52px; 
+            height: 52px;
+            border-radius: 50%; 
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            color: var(--accent); 
+            font-size: 20px; 
+            cursor: pointer; 
+            z-index: 2000;
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            box-shadow: var(--shadow-lg);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .info-btn:hover {
+            background: var(--accent);
+            color: var(--white);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .info-btn:active {
+            transform: translateY(0);
+        }
+
+        /* --- SPINNER --- */
+        .spinner {
+            display: inline-block; 
+            width: 14px; 
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.3); 
+            border-top-color: var(--white);
+            border-radius: 50%; 
+            animation: spin 0.6s linear infinite;
+        }
+        
+        @keyframes spin { 
+            to { transform: rotate(360deg); } 
+        }
+
+        /* --- HELPER TEXT --- */
+        .helper-text {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-top: 4px;
+            line-height: 1.4;
+        }
+
+        /* --- BADGE STYLES --- */
+        .severity-badge {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 768px) {
+            .mission-card { 
+                width: calc(100% - 32px); 
+                left: 16px; 
+                bottom: 16px; 
+                top: auto; 
+                max-height: 68vh;
+            }
+
+            .card-content {
+                padding: 24px;
+                gap: 18px;
+            }
+
+            .info-btn {
+                top: auto;
+                bottom: calc(68vh + 24px);
+                right: 16px;
+                width: 48px;
+                height: 48px;
+            }
+
+            #system-status {
+                padding: 14px 20px;
+                font-size: 12px;
+            }
+
+            .title {
+                font-size: 20px;
+            }
+
+            .coords-display {
+                font-size: 10px;
+                padding: 8px 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .card-content {
+                gap: 16px;
+                padding: 20px;
+            }
+
+            .action-row {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+
+            .header-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .coords-display {
+                width: 100%;
+                text-align: center;
+            }
+        }
+
+        /* --- ENTRANCE ANIMATIONS --- */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .field-section {
+            animation: fadeInUp 0.4s ease-out backwards;
+        }
+
+        .field-section:nth-child(2) { animation-delay: 0.05s; }
+        .field-section:nth-child(3) { animation-delay: 0.1s; }
+        .field-section:nth-child(4) { animation-delay: 0.15s; }
+        .field-section:nth-child(5) { animation-delay: 0.2s; }
+        .action-row:nth-child(6) { animation: fadeInUp 0.4s ease-out 0.25s backwards; }
+        .action-row:nth-child(7) { animation: fadeInUp 0.4s ease-out 0.3s backwards; }
+
+        /* --- PROFESSIONAL FOCUS OUTLINES --- */
+        button:focus-visible,
+        input:focus-visible,
+        select:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        /* --- CUSTOM LEAFLET STYLING --- */
+        .leaflet-control-zoom a {
+            background: var(--glass-bg) !important;
+            backdrop-filter: blur(20px) !important;
+            border: 1px solid var(--glass-border) !important;
+            color: var(--primary) !important;
+            transition: all 0.2s !important;
+        }
+
+        .leaflet-control-zoom a:hover {
+            background: var(--accent) !important;
+            color: var(--white) !important;
+            transform: scale(1.05);
+        }
+
+        /* --- LOADING STATE --- */
+        .btn-loading {
+            position: relative;
+            color: transparent;
+        }
+
+        .btn-loading .spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="system-status" class="status-ready">
+        <span class="status-icon"></span>
+        <span>System Status: Connecting...</span>
+    </div>
+
+    <button class="info-btn" onclick="showEmergencyInfo()" title="Emergency Information" aria-label="Emergency Contacts">
+        <i class="fas fa-info"></i>
+    </button>
+
+    <div class="mission-card" id="main-card">
+        <div class="card-content">
+            <div class="header-row">
+                <span class="title">
+                    <i class="fas fa-helicopter"></i> 
+                    <span>Emergency Dispatch</span>
+                </span>
+                <span class="coords-display" id="coords-text">
+                    <i class="fas fa-location-dot"></i> Select Location
+                </span>
+            </div>
+
+            <div id="busy-warning" class="emergency-warning">
+                <i class="fas fa-exclamation-triangle"></i> 
+                <strong>SYSTEM BUSY: DRONE DEPLOYED</strong><br>
+                Please wait for the current mission to complete or call Emergency Services immediately
+            </div>
+
+            <div class="field-section">
+                <label class="field-label">
+                    Full Name <span class="required-indicator">*</span>
+                </label>
+                <input type="text" id="reporter-name" placeholder="Enter your full name" required>
+                <p class="helper-text">Your identity for mission tracking and callback</p>
+            </div>
+
+            <div class="field-section">
+                <label class="field-label">
+                    Emergency Severity <span class="required-indicator">*</span>
+                </label>
+                <select id="severity-level" required>
+                    <option value="">Select severity level...</option>
+                    <option value="low">Low - Smoke / Small Fire</option>
+                    <option value="medium">Medium - Visible Flames</option>
+                    <option value="high">High - Spreading Rapidly</option>
+                    <option value="critical">CRITICAL - Life Threatening</option>
+                </select>
+                <p class="helper-text">Helps prioritize dispatch response time</p>
+            </div>
+
+            <div class="field-section">
+                <label class="field-label">
+                    Contact Number <span class="required-indicator">*</span>
+                </label>
+                <input type="tel" id="phone" placeholder="10-digit mobile number" maxlength="10" required>
+                <p class="helper-text">Primary contact for mission updates</p>
+            </div>
+
+            <div class="field-section">
+                <label class="field-label">
+                    Landmark / Location Details
+                </label>
+                <input type="text" id="label" placeholder="e.g., Behind City Mall, Near Park Gate">
+                <p class="helper-text">Optional: Helps ground team locate faster</p>
+            </div>
+
+            <div class="action-row">
+                <button class="btn-primary" onclick="useMyLocation()">
+                    <i class="fas fa-crosshairs"></i>
+                    <span>Use My Location</span>
+                </button>
+            </div>
+
+            <div class="action-row">
+                <button id="deployBtn" class="btn-deploy" onclick="sendMission()" disabled>
+                    <i class="fas fa-paper-plane"></i>
+                    <span>Send Emergency Alert</span>
+                </button>
+            </div>
+            <div class="status-msg" id="status-msg"></div>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            serverTimestamp, 
+            doc, 
+            onSnapshot 
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    
+        // --- FIREBASE CONFIG ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyD3j2PpWAjlOQo-8x22EIECrAvbYfwtvng",
+            authDomain: "autonomous-ff-uav.firebaseapp.com",
+            projectId: "autonomous-ff-uav",
+        };
+    
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+    
+        // --- MAP SETUP ---
+        const map = L.map('map', {
+            zoomControl: true,
+            attributionControl: true
+        }).setView([12.9141, 74.8560], 13);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+    
+        let marker;
+        let selectedLat = null;
+        let selectedLng = null;
+        let isSystemBusy = false;
+
+        // Professional emergency info
+        window.showEmergencyInfo = () => {
+            alert(
+                '═══════════════════════════════════\n' +
+                '        EMERGENCY CONTACTS         \n' +
+                '═══════════════════════════════════\n\n' +
+                '🚒 Fire Department\n' +
+                '   Call: 101\n\n' +
+                '🚑 Medical Emergency\n' +
+                '   Call: 102\n\n' +
+                '👮 Police\n' +
+                '   Call: 100\n\n' +
+                '🚁 FFUAV Drone Emergency\n' +
+                '   Automated Dispatch System\n\n' +
+                '═══════════════════════════════════'
+            );
+        };
+    
+        // --- STATUS MONITOR ---
+        const statusRef = doc(db, "drone_status", "drone_01");
+        
+        onSnapshot(statusRef, (docSnap) => {
+            const statusDiv = document.getElementById('system-status');
+            const card = document.getElementById('main-card');
+            const warning = document.getElementById('busy-warning');
+    
+            if (!docSnap.exists()) {
+                setUIFree();
+                return;
+            }
+    
+            const data = docSnap.data();
+            isSystemBusy = data.system_busy === true;
+    
+            if (isSystemBusy) {
+                statusDiv.innerHTML = '<span class="status-icon"></span><span>Status: Mission Active</span>';
+                statusDiv.className = "status-busy";
+                card.classList.add("card-disabled");
+                warning.style.display = "block";
+                
+                map.dragging.disable();
+                map.touchZoom.disable();
+                map.doubleClickZoom.disable();
+                map.scrollWheelZoom.disable();
+            } else {
+                setUIFree();
+            }
+    
+            function setUIFree() {
+                statusDiv.innerHTML = '<span class="status-icon"></span><span>Status: Online - Ready for Dispatch</span>';
+                statusDiv.className = "status-ready";
+                card.classList.remove("card-disabled");
+                warning.style.display = "none";
+                
+                map.dragging.enable();
+                map.touchZoom.enable();
+                map.doubleClickZoom.enable();
+                map.scrollWheelZoom.enable();
+            }
+        });
+    
+        // --- MAP CLICK ---
+        map.on('click', function(e) {
+            if (isSystemBusy) {
+                showStatus('⚠ System Busy - Call 101 for immediate assistance', 'error');
+                return;
+            }
+            updatePosition(e.latlng.lat, e.latlng.lng);
+            showStatus('✓ Location selected successfully', 'success');
+        });
+    
+        window.updatePosition = function(lat, lng) {
+            selectedLat = lat;
+            selectedLng = lng;
+            
+            if (marker) map.removeLayer(marker);
+            
+            marker = L.marker([lat, lng], {
+                icon: L.icon({
+                    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+                    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41],
+                    popupAnchor: [1, -34]
+                })
+            }).addTo(map);
+            
+            marker.bindPopup(`
+                <div style="text-align: center; font-family: inherit;">
+                    <strong style="color: #0891b2;">Emergency Location</strong><br>
+                    <small style="color: #6b7280;">${lat.toFixed(5)}, ${lng.toFixed(5)}</small>
+                </div>
+            `).openPopup();
+            
+            document.getElementById('coords-text').innerHTML = `
+                <i class="fas fa-location-dot"></i> ${lat.toFixed(4)}, ${lng.toFixed(4)}
+            `;
+            document.getElementById('deployBtn').disabled = false;
+        };
+    
+        window.useMyLocation = function() {
+            const btn = document.querySelector('.btn-primary');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<div class="spinner"></div><span>Locating...</span>';
+            btn.disabled = true;
+            
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    pos => {
+                        const { latitude, longitude } = pos.coords;
+                        map.setView([latitude, longitude], 16);
+                        updatePosition(latitude, longitude);
+                        btn.innerHTML = originalHTML;
+                        btn.disabled = false;
+                        showStatus('✓ Your location detected successfully', 'success');
+                    },
+                    err => {
+                        showStatus("⚠ GPS Error: " + err.message, "error");
+                        btn.innerHTML = originalHTML;
+                        btn.disabled = false;
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
+            } else {
+                showStatus("⚠ Geolocation not supported by your browser", "error");
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }
+        };
+    
+        window.showStatus = function(msg, type = '') {
+            const el = document.getElementById('status-msg');
+            el.innerText = msg;
+            el.className = 'status-msg ' + type;
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    el.innerText = '';
+                    el.className = 'status-msg';
+                }, 5000);
+            }
+        };
+    
+        window.validateForm = function() {
+            const name = document.getElementById('reporter-name').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const sev = document.getElementById('severity-level').value;
+    
+            if (!name) return "⚠ Name is required";
+            if (name.length < 2) return "⚠ Please enter a valid name";
+            if (!sev) return "⚠ Severity level is required";
+            if (!phone || phone.length !== 10 || isNaN(phone)) return "⚠ Valid 10-digit phone number required";
+            if (!selectedLat) return "⚠ Please select location on map";
+            return null;
+        };
+    
+        window.sendMission = async function() {
+            if (isSystemBusy) {
+                showStatus('⚠ System currently busy', 'error');
+                return;
+            }
+        
+            const error = validateForm();
+            if (error) {
+                showStatus(error, 'error');
+                return;
+            }
+        
+            const btn = document.getElementById('deployBtn');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<div class="spinner"></div><span>Sending Alert...</span>';
+            btn.disabled = true;
+        
+            const data = {
+                reporterName: document.getElementById('reporter-name').value.trim(),
+                phone: document.getElementById('phone').value.trim(),
+                severityLevel: document.getElementById('severity-level').value,
+                label: document.getElementById('label').value.trim() || "Emergency Report",
+                lat: selectedLat,
+                lng: selectedLng,
+                alt: 15.0,
+                status: "PENDING",
+                timestamp: serverTimestamp()
+            };
+        
+            try {
+                await addDoc(collection(db, "missions"), data);
+        
+                showStatus('✓ Alert sent successfully! Awaiting admin approval...', 'success');
+                btn.innerHTML = '<i class="fas fa-check-circle"></i><span>Alert Sent</span>';
+                
+                setTimeout(() => {
+                    document.getElementById('reporter-name').value = '';
+                    document.getElementById('phone').value = '';
+                    document.getElementById('severity-level').value = '';
+                    document.getElementById('label').value = '';
+                    if (marker) map.removeLayer(marker);
+                    selectedLat = null;
+                    selectedLng = null;
+                    document.getElementById('coords-text').innerHTML = '<i class="fas fa-location-dot"></i> Select Location';
+                    btn.innerHTML = originalHTML;
+                    btn.disabled = true;
+                }, 3000);
+        
+            } catch (e) {
+                console.error("Transmission Error:", e);
+                showStatus('⚠ Failed to send alert. Please check your internet connection.', 'error');
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        };
+    </script>
+</body>
+</html>
