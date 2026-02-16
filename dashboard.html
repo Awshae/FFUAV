@@ -21,12 +21,15 @@
             --text: #f8fafc;
             --text-muted: #94a3b8;
             --border: #334155;
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.15);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.3);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             background: var(--secondary);
             color: var(--text);
             height: 100vh;
@@ -38,169 +41,510 @@
         /* --- LOGIN OVERLAY --- */
         #login-overlay {
             position: fixed; inset: 0; z-index: 9999;
-            background: var(--secondary);
+            background: linear-gradient(135deg, var(--secondary) 0%, #0a0f1a 100%);
             display: flex; align-items: center; justify-content: center;
         }
         .login-box {
-            background: var(--primary); padding: 40px; border-radius: 12px;
-            text-align: center; width: 340px; border: 1px solid var(--border);
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            background: var(--primary); padding: 48px; border-radius: 16px;
+            text-align: center; width: 400px; border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg);
+        }
+        .login-box h2 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--text) 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         .login-box input {
-            width: 100%; padding: 12px; margin: 8px 0; background: var(--secondary);
-            border: 1px solid var(--border); color: white; border-radius: 6px;
+            width: 100%; padding: 14px 16px; margin: 10px 0; background: var(--secondary);
+            border: 1px solid var(--border); color: white; border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        .login-box input:focus {
+            outline: none;
+            border-color: var(--accent);
         }
         .login-box button {
-            width: 100%; padding: 12px; margin-top: 15px; background: var(--accent); color: white;
-            border: none; border-radius: 6px; cursor: pointer; font-weight: bold;
+            width: 100%; padding: 14px; margin-top: 20px; background: var(--accent); color: white;
+            border: none; border-radius: 8px; cursor: pointer; font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .login-box button:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
         }
 
         /* --- DASHBOARD LAYOUT --- */
         #dashboard { display: none; height: 100%; flex-direction: column; }
         
         header {
-            height: 60px; border-bottom: 1px solid var(--border);
+            height: 64px; border-bottom: 1px solid var(--border);
             display: flex; align-items: center; justify-content: space-between;
             padding: 0 24px; background: var(--secondary);
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            z-index: 1001;
         }
         
-        .brand { font-size: 20px; font-weight: 700; display: flex; gap: 10px; align-items: center; }
-        .brand i { color: var(--fire); }
+        .brand { 
+            font-size: 20px; font-weight: 700; display: flex; gap: 12px; align-items: center;
+            letter-spacing: 0.5px;
+        }
+        .brand i { color: var(--fire); font-size: 22px; }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .header-btn:hover {
+            background: rgba(255,255,255,0.05);
+            border-color: var(--accent);
+        }
 
         .main-content {
-            flex: 1; display: grid; grid-template-columns: 380px 1fr; overflow: hidden;
+            flex: 1; 
+            display: grid; 
+            grid-template-columns: 400px 1fr; 
+            overflow: hidden;
+            transition: grid-template-columns 0.3s ease;
+        }
+
+        .main-content.sidebar-collapsed {
+            grid-template-columns: 0px 1fr;
         }
 
         /* --- SIDEBAR --- */
         .sidebar {
-            background: var(--primary); border-right: 1px solid var(--border);
-            display: flex; flex-direction: column;
+            background: var(--primary); 
+            border-right: 1px solid var(--border);
+            display: flex; 
+            flex-direction: column;
+            overflow: hidden;
+            transition: all 0.3s ease;
         }
+
+        .sidebar-collapsed .sidebar {
+            margin-left: -400px;
+        }
+
         .panel-header {
-            padding: 16px; border-bottom: 1px solid var(--border);
-            display: flex; justify-content: space-between; align-items: center;
+            padding: 20px; 
+            border-bottom: 1px solid var(--border);
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
         }
         .panel-title {
-            font-weight: 600; text-transform: uppercase; font-size: 12px; 
-            letter-spacing: 1px; color: var(--text-muted);
+            font-weight: 600; 
+            text-transform: uppercase; 
+            font-size: 11px; 
+            letter-spacing: 1.5px; 
+            color: var(--text-muted);
         }
 
         .tool-btn {
-            background: transparent; border: 1px solid var(--border);
-            color: var(--text-muted); padding: 4px 8px; border-radius: 4px;
-            cursor: pointer; font-size: 11px; transition: all 0.2s;
-            display: flex; align-items: center; gap: 4px;
+            background: transparent; 
+            border: 1px solid var(--border);
+            color: var(--text-muted); 
+            padding: 6px 10px; 
+            border-radius: 6px;
+            cursor: pointer; 
+            font-size: 11px; 
+            transition: all 0.2s;
+            display: flex; 
+            align-items: center; 
+            gap: 6px;
+            font-weight: 500;
         }
-        .tool-btn:hover { background: rgba(255,255,255,0.1); color: white; }
-        .tool-btn.csv { border-color: var(--success); color: var(--success); }
-        .tool-btn.csv:hover { background: var(--success); color: white; }
+        .tool-btn:hover { 
+            background: rgba(255,255,255,0.05); 
+            color: white; 
+            transform: translateY(-1px);
+        }
+        .tool-btn.csv { 
+            border-color: var(--success); 
+            color: var(--success); 
+        }
+        .tool-btn.csv:hover { 
+            background: var(--success); 
+            color: white; 
+        }
         
-        .mission-list { flex: 1; overflow-y: auto; padding: 0; }
+        .mission-list { 
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 0;
+        }
+
+        .mission-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .mission-list::-webkit-scrollbar-track {
+            background: var(--secondary);
+        }
+
+        .mission-list::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        .mission-list::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
         
         .mission-item {
-            padding: 16px; border-bottom: 1px solid var(--border);
-            transition: background 0.2s; cursor: pointer;
+            padding: 18px 20px; 
+            border-bottom: 1px solid var(--border);
+            transition: all 0.2s; 
+            cursor: pointer;
+            position: relative;
         }
-        .mission-item:hover { background: rgba(255,255,255,0.02); }
-        .mission-item.active { background: rgba(59, 130, 246, 0.1); border-left: 3px solid var(--accent); }
+        .mission-item:hover { 
+            background: rgba(255,255,255,0.03); 
+        }
+        .mission-item.active { 
+            background: rgba(59, 130, 246, 0.08); 
+            border-left: 3px solid var(--accent); 
+        }
         
-        .m-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
-        .m-badge { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; }
-        .status-PENDING { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
-        .status-IN_PROGRESS { background: rgba(16, 185, 129, 0.2); color: var(--success); }
-        .status-ABORT_SIGNAL { background: rgba(239, 68, 68, 0.2); color: var(--fire); }
+        .m-row { 
+            display: flex; 
+            justify-content: space-between; 
+            margin-bottom: 8px; 
+            align-items: center;
+        }
+        .m-badge { 
+            padding: 4px 10px; 
+            border-radius: 6px; 
+            font-size: 10px; 
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .status-PENDING { 
+            background: rgba(245, 158, 11, 0.15); 
+            color: var(--warning);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        .status-IN_PROGRESS { 
+            background: rgba(16, 185, 129, 0.15); 
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .status-ABORT_SIGNAL { 
+            background: rgba(239, 68, 68, 0.15); 
+            color: var(--fire);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
         
-        .m-actions { display: flex; gap: 8px; margin-top: 10px; }
+        .m-actions { 
+            display: flex; 
+            gap: 10px; 
+            margin-top: 12px; 
+        }
         .btn-sm {
-            padding: 8px 12px; border-radius: 4px; border: none; font-size: 11px;
-            font-weight: 700; cursor: pointer; flex: 1; transition: transform 0.1s;
+            padding: 9px 14px; 
+            border-radius: 6px; 
+            border: none; 
+            font-size: 11px;
+            font-weight: 700; 
+            cursor: pointer; 
+            flex: 1; 
+            transition: all 0.2s;
+            letter-spacing: 0.5px;
         }
-        .btn-sm:active { transform: scale(0.98); }
-        .btn-approve { background: var(--success); color: #000; }
-        .btn-abort { background: var(--secondary); border: 1px solid var(--fire); color: var(--fire); }
+        .btn-sm:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+        .btn-sm:active { 
+            transform: scale(0.98); 
+        }
+        .btn-approve { 
+            background: var(--success); 
+            color: #000; 
+        }
+        .btn-approve:hover {
+            background: #059669;
+        }
+        .btn-abort { 
+            background: var(--secondary); 
+            border: 1px solid var(--fire); 
+            color: var(--fire); 
+        }
+        .btn-abort:hover {
+            background: var(--fire);
+            color: white;
+        }
+
+        /* --- TOGGLE SIDEBAR BUTTON --- */
+        .sidebar-toggle {
+            position: absolute;
+            left: 400px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 1002;
+            background: var(--primary);
+            border: 1px solid var(--border);
+            border-left: none;
+            border-radius: 0 8px 8px 0;
+            padding: 12px 8px;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sidebar-toggle:hover {
+            background: var(--accent);
+            color: white;
+        }
+
+        .main-content.sidebar-collapsed .sidebar-toggle {
+            left: 0;
+        }
 
         /* --- MAP & TELEMETRY --- */
-        .map-wrapper { position: relative; width: 100%; height: 100%; }
-        #map { width: 100%; height: 100%; background: #e5e7eb; } 
+        .map-wrapper { 
+            position: relative; 
+            width: 100%; 
+            height: 100%; 
+        }
+        #map { 
+            width: 100%; 
+            height: 100%; 
+            background: #e5e7eb; 
+        } 
 
         .telemetry-card {
-            position: absolute; top: 20px; right: 20px; z-index: 1000;
-            background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px);
-            border: 1px solid var(--border); border-radius: 12px;
-            width: 260px; padding: 16px; color: white;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            position: absolute; 
+            top: 20px; 
+            right: 20px; 
+            z-index: 1000;
+            background: rgba(15, 23, 42, 0.92); 
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border); 
+            border-radius: 12px;
+            width: 280px; 
+            padding: 18px; 
+            color: white;
+            box-shadow: var(--shadow-lg);
         }
 
         /* --- VIDEO FEED CARD --- */
         .video-card {
-          position: absolute; 
-          bottom: 20px; 
-          right: 20px; 
-          z-index: 1000;
-          background: rgba(15, 23, 42, 0.95); /* Slightly more opaque for video */
-          backdrop-filter: blur(12px);
-          border: 1px solid var(--border); 
-          border-radius: 12px;
-          width: 320px; /* Adjust based on stream aspect ratio */
-          padding: 10px;
-          box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-          transition: transform 0.3s ease;
+            position: absolute; 
+            bottom: 20px; 
+            right: 20px; 
+            z-index: 1000;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border); 
+            border-radius: 12px;
+            width: 340px;
+            padding: 12px;
+            box-shadow: var(--shadow-lg);
+            transition: all 0.3s ease;
+        }
+
+        .video-card.minimized {
+            width: 180px;
+            padding: 10px;
         }
 
         .video-header {
-          display: flex; justify-content: space-between; align-items: center;
-          margin-bottom: 8px; font-size: 12px; color: var(--text-muted); font-weight: 700;
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            margin-bottom: 10px; 
+            font-size: 11px; 
+            color: var(--text-muted); 
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .video-header button {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .video-header button:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
         }
 
         .live-indicator {
-          display: inline-block; width: 8px; height: 8px; 
-          background: var(--fire); border-radius: 50%; 
-          margin-right: 6px; box-shadow: 0 0 8px var(--fire);
-          animation: blink 1s infinite;
+            display: inline-block; 
+            width: 8px; 
+            height: 8px; 
+            background: var(--fire); 
+            border-radius: 50%; 
+            margin-right: 8px; 
+            box-shadow: 0 0 10px var(--fire);
+            animation: blink 1.5s infinite;
         }
 
-        @keyframes blink { 50% { opacity: 0.4; } }
+        @keyframes blink { 
+            50% { opacity: 0.3; } 
+        }
 
         .video-frame {
-          width: 100%;
-          height: 225px; /* 4:3 Aspect Ratio approx */
-          background: #000;
-          border-radius: 8px;
-          object-fit: cover;
-          display: block;
+            width: 100%;
+            height: 240px;
+            background: #000;
+            border-radius: 8px;
+            object-fit: cover;
+            display: block;
+            transition: height 0.3s ease;
+        }
+
+        .video-card.minimized .video-frame {
+            height: 0;
+            overflow: hidden;
         }
 
         .video-offline-msg {
-          position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-          color: var(--text-muted); font-size: 12px; text-align: center;
-          width: 100%;
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%);
+            color: var(--text-muted); 
+            font-size: 12px; 
+            text-align: center;
+            width: 100%;
         }
 
         .t-header { 
-            display: flex; justify-content: space-between; align-items: center; 
-            margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 14px; 
+            padding-bottom: 14px; 
+            border-bottom: 1px solid var(--border);
         }
         .drone-status-pill {
-            font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 10px;
-            background: var(--border); color: var(--text-muted);
+            font-size: 10px; 
+            font-weight: 700; 
+            padding: 3px 10px; 
+            border-radius: 12px;
+            background: var(--border); 
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
         }
-        .drone-status-pill.online { background: var(--accent); color: white; }
+        .drone-status-pill.online { 
+            background: var(--accent); 
+            color: white; 
+            box-shadow: 0 0 12px rgba(37, 99, 235, 0.4);
+        }
 
-        .t-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .t-item { display: flex; flex-direction: column; gap: 2px; }
-        .t-label { font-size: 11px; color: var(--text-muted); }
-        .t-value { font-size: 16px; font-weight: 600; font-family: monospace; }
+        .t-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 14px; 
+        }
+        .t-item { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 4px; 
+        }
+        .t-label { 
+            font-size: 10px; 
+            color: var(--text-muted);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .t-value { 
+            font-size: 18px; 
+            font-weight: 600; 
+            font-family: 'Courier New', monospace; 
+        }
         
-        .battery-bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 4px; overflow: hidden; }
-        .battery-fill { height: 100%; background: var(--success); width: 0%; transition: width 0.5s; }
+        .battery-bar { 
+            height: 6px; 
+            background: var(--border); 
+            border-radius: 3px; 
+            margin-top: 6px; 
+            overflow: hidden; 
+        }
+        .battery-fill { 
+            height: 100%; 
+            background: var(--success); 
+            width: 0%; 
+            transition: width 0.5s ease;
+            border-radius: 3px;
+        }
 
         /* --- MOTOR FLAG STYLE --- */
         .motor-flag {
-            font-size: 18px; font-weight: bold; color: var(--text-muted);
-            background: rgba(255,255,255,0.05); padding: 4px 12px; border-radius: 4px;
+            font-size: 16px; 
+            font-weight: 700; 
+            color: var(--text-muted);
+            background: rgba(255,255,255,0.05); 
+            padding: 8px 14px; 
+            border-radius: 6px;
             text-align: center;
+            border: 1px solid var(--border);
+            font-family: 'Courier New', monospace;
+            letter-spacing: 0.5px;
         }
-        .motor-flag.active { color: var(--success); border: 1px solid var(--success); }
+        .motor-flag.active { 
+            color: var(--success); 
+            border: 1px solid var(--success);
+            background: rgba(16, 185, 129, 0.1);
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+        }
+
+        /* --- TRACKING BUTTON --- */
+        #track-btn {
+            width: 100%; 
+            margin-top: 14px; 
+            padding: 10px; 
+            background: transparent; 
+            border: 1px solid var(--accent); 
+            color: var(--accent); 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 11px; 
+            font-weight: 700;
+            transition: all 0.2s;
+            letter-spacing: 0.5px;
+        }
+
+        #track-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
 
         /* --- MARKER STYLES --- */
         .drone-marker-icon {
@@ -214,10 +558,55 @@
         }
         
         /* --- RESPONSIVE --- */
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 340px 1fr;
+            }
+            .sidebar-toggle {
+                left: 340px;
+            }
+            .telemetry-card {
+                width: 260px;
+            }
+            .video-card {
+                width: 300px;
+            }
+        }
+
         @media (max-width: 900px) {
-            .main-content { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
-            .sidebar { border-right: none; border-bottom: 1px solid var(--border); order: 2; }
-            .map-wrapper { order: 1; }
+            .main-content { 
+                grid-template-columns: 1fr; 
+                grid-template-rows: 1fr 1fr; 
+            }
+            .sidebar { 
+                border-right: none; 
+                border-bottom: 1px solid var(--border); 
+                order: 2; 
+            }
+            .map-wrapper { 
+                order: 1; 
+            }
+            .sidebar-toggle {
+                display: none;
+            }
+        }
+
+        /* --- EMPTY STATE --- */
+        .empty-state {
+            padding: 40px 20px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            line-height: 1.6;
         }
     </style>
 </head>
@@ -225,14 +614,14 @@
 
     <div id="login-overlay">
         <div class="login-box">
-            <h2 style="margin-bottom:10px;">FFUAV Command</h2>
-            <p style="color:var(--text-muted); font-size:13px; margin-bottom:15px;">Authenticated Personnel Only</p>
+            <h2>FFUAV Command</h2>
+            <p style="color:var(--text-muted); font-size:13px; margin-bottom:20px;">Authenticated Personnel Only</p>
             
             <input type="email" id="email" placeholder="Admin Email" autocomplete="email">
             <input type="password" id="password" placeholder="Password" autocomplete="current-password">
             
             <button onclick="login()">SECURE LOGIN</button>
-            <p id="login-error" style="color:var(--fire); margin-top:10px; display:none; font-size:12px;">Authentication Failed</p>
+            <p id="login-error" style="color:var(--fire); margin-top:12px; display:none; font-size:12px;"></p>
         </div>
     </div>
 
@@ -242,12 +631,18 @@
                 <i class="fas fa-shield-alt"></i>
                 FFUAV ADMIN
             </div>
-            <button onclick="logout()" style="background:transparent; border:1px solid var(--border); color:var(--text); padding:6px 12px; border-radius:6px; cursor:pointer;">
-                <i class="fas fa-sign-out-alt"></i> LOGOUT
-            </button>
+            <div class="header-actions">
+                <button class="header-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> LOGOUT
+                </button>
+            </div>
         </header>
 
-        <div class="main-content">
+        <div class="main-content" id="main-content">
+            <button class="sidebar-toggle" onclick="toggleSidebar()" title="Toggle Sidebar">
+                <i class="fas fa-chevron-left" id="toggle-icon"></i>
+            </button>
+
             <div class="sidebar">
                 <div class="panel-header">
                     <span class="panel-title">Active Missions</span>
@@ -261,88 +656,89 @@
                     </div>
                 </div>
                 <div class="mission-list" id="mission-list">
-                    <div style="padding:20px; text-align:center; color:var(--text-muted);">
-                        <i class="fas fa-spinner fa-spin"></i> Connecting...
+                    <div class="empty-state">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Connecting to mission control...</p>
                     </div>
                 </div>
             </div>
 
             <div class="map-wrapper">
-              <div id="map"></div>
+                <div id="map"></div>
           
-              <div class="telemetry-card">
-                  <div class="t-header">
-                      <span style="font-weight:600; font-size:13px;"><i class="fas fa-plane"></i> DRONE-01</span>
-                      <span id="drone-pill" class="drone-status-pill">OFFLINE</span>
-                  </div>
-                  
-                  <div class="t-grid">
-                      <div class="t-item" style="grid-column: span 2; margin-bottom: 8px;">
-                          <span class="t-label">MOTORS (ARMED)</span>
-                          <div id="motor-flag" class="motor-flag">0</div>
-                      </div>
+                <div class="telemetry-card">
+                    <div class="t-header">
+                        <span style="font-weight:600; font-size:13px;"><i class="fas fa-plane"></i> DRONE-01</span>
+                        <span id="drone-pill" class="drone-status-pill">OFFLINE</span>
+                    </div>
+                    
+                    <div class="t-grid">
+                        <div class="t-item" style="grid-column: span 2; margin-bottom: 8px;">
+                            <span class="t-label">Motors Status</span>
+                            <div id="motor-flag" class="motor-flag">0</div>
+                        </div>
+            
+                        <div class="t-item">
+                            <span class="t-label">Altitude</span>
+                            <span class="t-value" id="t-alt">-- m</span>
+                        </div>
+                        <div class="t-item">
+                            <span class="t-label">Speed</span>
+                            <span class="t-value" id="t-speed">-- m/s</span>
+                        </div>
+                        <div class="t-item" style="grid-column: span 2;">
+                            <div style="display:flex; justify-content:space-between;">
+                                <span class="t-label">Battery</span>
+                                <span class="t-value" id="t-batt-text">--%</span>
+                            </div>
+                            <div class="battery-bar"><div class="battery-fill" id="t-batt-fill"></div></div>
+                        </div>
+                        <div class="t-item" style="grid-column: span 2; border-top:1px solid var(--border); padding-top:12px; margin-top:6px;">
+                            <span class="t-label">Last Update</span>
+                            <span class="t-label" id="t-last-seen" style="color:var(--accent); font-size:11px;">--</span>
+                        </div>
+                    </div>
+                    
+                    <button id="track-btn" onclick="toggleTracking()">
+                        <i class="fas fa-crosshairs"></i> LOCK CAMERA
+                    </button>
+                </div>
           
-                      <div class="t-item">
-                          <span class="t-label">ALTITUDE</span>
-                          <span class="t-value" id="t-alt">-- m</span>
-                      </div>
-                      <div class="t-item">
-                          <span class="t-label">SPEED</span>
-                          <span class="t-value" id="t-speed">-- m/s</span>
-                      </div>
-                      <div class="t-item" style="grid-column: span 2;">
-                          <div style="display:flex; justify-content:space-between;">
-                              <span class="t-label">BATTERY</span>
-                              <span class="t-value" id="t-batt-text">--%</span>
-                          </div>
-                          <div class="battery-bar"><div class="battery-fill" id="t-batt-fill"></div></div>
-                      </div>
-                      <div class="t-item" style="grid-column: span 2; border-top:1px solid var(--border); padding-top:10px; margin-top:4px;">
-                          <span class="t-label">LAST UPDATE</span>
-                          <span class="t-label" id="t-last-seen" style="color:var(--accent);">--</span>
-                      </div>
-                  </div>
-                  
-                  <button id="track-btn" onclick="toggleTracking()" style="width:100%; margin-top:12px; padding:8px; background:transparent; border:1px solid var(--accent); color:var(--accent); border-radius:6px; cursor:pointer; font-size:11px; font-weight:700;">
-                      <i class="fas fa-crosshairs"></i> LOCK CAMERA
-                  </button>
-              </div>
-          
-              <div class="video-card" id="video-card">
-                  <div class="video-header">
-                      <span><span class="live-indicator"></span>LIVE FEED</span>
-                      <button onclick="toggleVideo()" style="background:none; border:none; color:var(--text-muted); cursor:pointer;">
-                          <i class="fas fa-compress-alt"></i>
-                      </button>
-                  </div>
-                  
-                  <div style="position:relative; width:100%; height:100%;">
-                      <img src="http://192.168.1.100:5000/video_feed" 
-                           class="video-frame" 
-                           id="drone-cam-stream"
-                           onerror="this.style.display='none'; document.getElementById('vid-msg').style.display='flex';"
-                           onload="this.style.display='block'; document.getElementById('vid-msg').style.display='none';">
-                      
-                      <div id="vid-msg" class="video-offline-msg">
-                          <i class="fas fa-video-slash" style="font-size:24px; margin-bottom:8px; opacity:0.7;"></i><br>
-                          <span>SIGNAL LOST</span>
-                          <span style="font-size:10px; color:var(--text-muted); margin-top:4px;">Waiting for stream...</span>
-                      </div>
-                  </div>
-              </div>
-          </div>
+                <div class="video-card" id="video-card">
+                    <div class="video-header">
+                        <span><span class="live-indicator"></span>LIVE FEED</span>
+                        <button onclick="toggleVideo()" title="Toggle Video">
+                            <i class="fas fa-compress-alt" id="video-toggle-icon"></i>
+                        </button>
+                    </div>
+                    
+                    <div style="position:relative; width:100%;">
+                        <img src="http://192.168.1.100:5000/video_feed" 
+                             class="video-frame" 
+                             id="drone-cam-stream"
+                             onerror="this.style.display='none'; document.getElementById('vid-msg').style.display='flex';"
+                             onload="this.style.display='block'; document.getElementById('vid-msg').style.display='none';">
+                        
+                        <div id="vid-msg" class="video-offline-msg" style="display:flex; flex-direction:column; align-items:center;">
+                            <i class="fas fa-video-slash" style="font-size:28px; margin-bottom:10px; opacity:0.6;"></i>
+                            <span style="font-weight:600;">SIGNAL LOST</span>
+                            <span style="font-size:10px; color:var(--text-muted); margin-top:4px;">Waiting for stream...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, query, orderBy, onSnapshot, doc, updateDoc, setDoc, serverTimestamp, getDocs, deleteDoc, getDoc } 
         from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        // IMPORT AUTH MODULES
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } 
         from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         // --- CONFIGURATION ---
-        // REPLACE with your authorized emails
         const ALLOWED_EMAILS = [
             "admin@ffuav.in", 
             "pilot@gmail.in", 
@@ -360,6 +756,19 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
+        // --- SIDEBAR TOGGLE ---
+        window.toggleSidebar = () => {
+            const mainContent = document.getElementById('main-content');
+            const icon = document.getElementById('toggle-icon');
+            mainContent.classList.toggle('sidebar-collapsed');
+            
+            if(mainContent.classList.contains('sidebar-collapsed')) {
+                icon.className = 'fas fa-chevron-right';
+            } else {
+                icon.className = 'fas fa-chevron-left';
+            }
+        };
+
         // --- AUTH LOGIC ---
         window.login = () => {
             const email = document.getElementById('email').value;
@@ -369,13 +778,11 @@
             signInWithEmailAndPassword(auth, email, pass)
                 .then((userCredential) => {
                     const user = userCredential.user;
-                    // Whitelist Check
                     if (!ALLOWED_EMAILS.includes(user.email)) {
                         err.style.display = 'block';
                         err.innerText = "Unauthorized Email Address";
                         signOut(auth);
                     } else {
-                        // Success
                         document.getElementById('login-overlay').style.display = 'none';
                         document.getElementById('dashboard').style.display = 'flex';
                         initSystem();
@@ -391,7 +798,6 @@
             signOut(auth).then(() => location.reload());
         };
 
-        // Persist Login
         onAuthStateChanged(auth, (user) => {
             if (user && ALLOWED_EMAILS.includes(user.email)) {
                 document.getElementById('login-overlay').style.display = 'none';
@@ -402,7 +808,6 @@
 
         // --- MAIN SYSTEM ---
         function initSystem() {
-            // 1. MAP SETUP
             const map = L.map('map').setView([12.9141, 74.8560], 14);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; OpenStreetMap',
@@ -413,7 +818,6 @@
             const droneLayer = L.layerGroup().addTo(map);
             const pathLayer = L.layerGroup().addTo(map);
 
-            // Drone Icon
             const droneIcon = L.divIcon({
                 className: '',
                 html: `
@@ -424,19 +828,16 @@
                 iconSize: [50, 50],
                 iconAnchor: [25, 25]
             });
-            
-            
 
             let droneMarker = L.marker([0,0], {icon: droneIcon}); 
             let flightPath = [];
             let polyline = L.polyline([], {color: '#2563eb', weight: 4, opacity: 0.8}).addTo(pathLayer);
             let isTracking = false;
 
-            // TRACKING FOR AUTO-CANCEL
             let currentActiveMissionId = null;
             let hasTakenOff = false;
 
-            // 2. MISSION LISTENER
+            // MISSION LISTENER
             const q = query(collection(db, "missions"), orderBy("timestamp", "desc"));
             
             onSnapshot(q, snap => {
@@ -444,11 +845,15 @@
                 list.innerHTML = "";
                 missionLayer.clearLayers();
                 
-                // Reset active ID tracker
                 currentActiveMissionId = null;
 
                 if (snap.empty) {
-                    list.innerHTML = `<div style="padding:20px;text-align:center;color:#64748b">No active missions</div>`;
+                    list.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-inbox"></i>
+                            <p>No active missions</p>
+                        </div>
+                    `;
                     return;
                 }
 
@@ -458,7 +863,6 @@
                     const d = docSnap.data();
                     const id = docSnap.id;
 
-                    // Track if there is an In Progress mission
                     if (d.status === "IN_PROGRESS") {
                         currentActiveMissionId = id;
                     }
@@ -470,8 +874,8 @@
                             <span class="m-badge status-${d.status}">${d.status}</span>
                             <span style="font-size:11px; color:var(--text-muted)">${d.timestamp?.toDate().toLocaleTimeString() || '--:--'}</span>
                         </div>
-                        <div style="font-weight:600; margin-bottom:4px; font-size:14px;">${d.label || 'Emergency Report'}</div>
-                        <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">
+                        <div style="font-weight:600; margin-bottom:6px; font-size:14px;">${d.label || 'Emergency Report'}</div>
+                        <div style="font-size:12px; color:var(--text-muted); margin-bottom:10px; line-height:1.6;">
                             <i class="fas fa-user"></i> ${d.reporterName || 'Unknown'} <br>
                             <i class="fas fa-phone"></i> ${d.phone} | <span style="color:${d.severityLevel === 'critical' ? 'var(--fire)' : 'var(--text-muted)'}">${(d.severityLevel || '').toUpperCase()}</span>
                         </div>
@@ -508,14 +912,13 @@
                 });
             });
 
-            // 3. DRONE TELEMETRY
+            // DRONE TELEMETRY
             const droneRef = doc(db, "drone_status", "drone_01");
             
             onSnapshot(droneRef, (snap) => {
                 if(!snap.exists()) return;
                 const data = snap.data();
 
-                // --- UI UPDATES ---
                 document.getElementById('t-alt').innerText = (data.altitude || 0) + " m";
                 document.getElementById('t-speed').innerText = (data.speed || 0) + " m/s";
                 document.getElementById('t-batt-text').innerText = (data.battery || 0) + "%";
@@ -526,28 +929,24 @@
                 else if(data.battery < 50) fill.style.background = "var(--warning)";
                 else fill.style.background = "var(--success)";
 
-                // --- MOTOR FLAG LOGIC ---
                 const isArmed = data.is_armed || false;
                 const flagEl = document.getElementById('motor-flag');
                 
                 if (isArmed) {
                     flagEl.innerText = "1 (ARMED)";
                     flagEl.className = "motor-flag active";
-                    hasTakenOff = true; // Mark that we have flown
+                    hasTakenOff = true;
                 } else {
                     flagEl.innerText = "0 (DISARMED)";
                     flagEl.className = "motor-flag";
                     
-                    // AUTO-CANCEL LOGIC:
-                    // If we were flying (hasTakenOff) and now we are disarmed (landed), AND there is a mission
                     if (hasTakenOff && currentActiveMissionId) {
                         console.log("Drone Landed. Ending Mission...");
-                        window.updateStatus(currentActiveMissionId, 'ABORT_SIGNAL'); // Or 'COMPLETED'
-                        hasTakenOff = false; // Reset cycle
+                        window.updateStatus(currentActiveMissionId, 'ABORT_SIGNAL');
+                        hasTakenOff = false;
                     }
                 }
 
-                // --- ONLINE/OFFLINE PILL ---
                 const pill = document.getElementById('drone-pill');
                 const lastUpdate = data.last_update?.toDate();
                 const now = new Date();
@@ -563,7 +962,6 @@
                     document.getElementById('t-last-seen').innerText = Math.floor(diff)+"s ago";
                 }
 
-                // --- MAP UPDATES ---
                 if (typeof data.lat === "number" && typeof data.lng === "number") {
                     const newPos = [data.lat, data.lng];
 
@@ -573,7 +971,6 @@
                     }
                     droneMarker.setLatLng(newPos);
                     
-                    // Path Logic
                     let shouldAdd = false;
                     if (flightPath.length === 0) {
                         shouldAdd = true;
@@ -605,19 +1002,15 @@
                     if (isTracking) map.panTo(newPos, {animate: true, duration: 0.5});
                 }
             });
-            // 4. ACTION FUNCTIONS
-            window.updateStatus = async (id, status) => {
 
+            // ACTION FUNCTIONS
+            window.updateStatus = async (id, status) => {
                 const missionRef = doc(db, "missions", id);
                 const droneStatusRef = doc(db, "drone_status", "drone_01");
             
-                // 1️⃣ Update mission status
                 await updateDoc(missionRef, { status: status });
             
-                // 2️⃣ When mission starts → mark system busy
                 if (status === 'IN_PROGRESS') {
-            
-                    // 🔴 SET BUSY TRUE
                     await updateDoc(droneStatusRef, {
                         system_busy: true
                     });
@@ -637,16 +1030,13 @@
                     hasTakenOff = false;
                 }
             
-                // 3️⃣ When mission ends → free system
-                if (
-                    status === 'ABORT_SIGNAL' ||
-                    status === 'COMPLETED'
-                ) {
+                if (status === 'ABORT_SIGNAL' || status === 'COMPLETED') {
                     await updateDoc(droneStatusRef, {
                         system_busy: false
                     });
                 }
             };
+
             window.toggleTracking = () => {
                 isTracking = !isTracking;
                 updateTrackBtn();
@@ -656,24 +1046,17 @@
             };
 
             window.toggleVideo = () => {
-              const card = document.getElementById('video-card');
-              const img = card.querySelector('img');
-              const msg = document.getElementById('vid-msg');
-              
-              // Simple toggle implementation
-              if (card.style.width === '150px') {
-                  // Expand
-                  card.style.width = '320px';
-                  img.style.height = '225px';
-                  img.style.display = msg.style.display === 'block' ? 'none' : 'block';
-              } else {
-                  // Minimize
-                  card.style.width = '150px';
-                  img.style.height = '0px';
-                  img.style.display = 'none';
-                  msg.style.display = 'none';
-              }
-          };
+                const card = document.getElementById('video-card');
+                const icon = document.getElementById('video-toggle-icon');
+                
+                card.classList.toggle('minimized');
+                
+                if (card.classList.contains('minimized')) {
+                    icon.className = 'fas fa-expand-alt';
+                } else {
+                    icon.className = 'fas fa-compress-alt';
+                }
+            };
 
             function updateTrackBtn() {
                 const btn = document.getElementById('track-btn');
@@ -689,7 +1072,7 @@
             }
 
             window.clearHistory = async () => {
-                if(confirm("Delete ALL mission history?")) {
+                if(confirm("Delete ALL mission history? This action cannot be undone.")) {
                     const s = await getDocs(collection(db, "missions"));
                     s.forEach(d => deleteDoc(d.ref));
                     flightPath = [];
