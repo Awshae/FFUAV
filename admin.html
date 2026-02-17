@@ -381,9 +381,19 @@
                 currentActiveMissionId = null;
 
                 if (snap.empty) {
+
                     list.innerHTML = `<div style="padding:20px;text-align:center;color:#64748b">No active missions</div>`;
+                
+                    // 🔴 AUTO FREE SYSTEM IF NO MISSIONS EXIST
+                    updateDoc(doc(db, "drone_status", "drone_01"), {
+                        system_busy: false
+                    });
+                
+                    currentActiveMissionId = null;
+                
                     return;
                 }
+                
 
                 let isFirst = true;
 
@@ -603,12 +613,38 @@
 
             window.clearHistory = async () => {
                 if(confirm("Delete ALL mission history?")) {
+            
+                    // 1️⃣ Delete all missions
                     const s = await getDocs(collection(db, "missions"));
-                    s.forEach(d => deleteDoc(d.ref));
+                    for (const d of s.docs) {
+                        await deleteDoc(d.ref);
+                    }
+            
+                    // 2️⃣ 🔴 CRITICAL FIX: Reset system_busy
+                    await updateDoc(doc(db, "drone_status", "drone_01"), {
+                        system_busy: false
+                    });
+            
+                    // 3️⃣ Stop drone commands
+                    await setDoc(doc(db, "drone_commands", "drone_01"), {
+                        command: "IDLE",
+                        timestamp: serverTimestamp()
+                    });
+            
+                    // 4️⃣ Reset local tracking
+                    currentActiveMissionId = null;
+                    hasTakenOff = false;
+                    isTracking = false;
+            
                     flightPath = [];
                     polyline.setLatLngs([]);
+            
+                    updateTrackBtn();
+            
+                    alert("All missions deleted. System unlocked.");
                 }
             };
+            
 
             window.exportCSV = async () => {
                 const snap = await getDocs(query(collection(db, "missions"), orderBy("timestamp", "desc")));
