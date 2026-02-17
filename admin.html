@@ -460,7 +460,8 @@
 
                 // --- UI UPDATES ---
                 document.getElementById('t-alt').innerText = (data.altitude || 0) + " m";
-                document.getElementById('t-speed').innerText = (data.speed || 0) + " m/s";
+                const speed = typeof data.speed === "number"? parseFloat(data.speed.toFixed(4)): 0;
+                document.getElementById('t-speed').innerText = speed + " m/s";
                 document.getElementById('t-batt-text').innerText = (data.battery || 0) + "%";
                 document.getElementById('t-batt-fill').style.width = (data.battery || 0) + "%";
                 
