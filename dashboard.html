@@ -713,11 +713,9 @@
                     </div>
                     
                     <div style="position:relative; width:100%;">
-                        <img src="http://192.168.1.100:5000/video_feed" 
-                             class="video-frame" 
-                             id="drone-cam-stream"
-                             onerror="this.style.display='none'; document.getElementById('vid-msg').style.display='flex';"
-                             onload="this.style.display='block'; document.getElementById('vid-msg').style.display='none';">
+                        <img src="/video_feed"
+                            class="video-frame"
+                            id="drone-cam-stream">
                         
                         <div id="vid-msg" class="video-offline-msg" style="display:flex; flex-direction:column; align-items:center;">
                             <i class="fas fa-video-slash" style="font-size:28px; margin-bottom:10px; opacity:0.6;"></i>
@@ -915,12 +913,13 @@
             // DRONE TELEMETRY
             const droneRef = doc(db, "drone_status", "drone_01");
             
-            onSnapshot(droneRef, (snap) => {
+            onSnapshot(droneRef, async(snap) => {
                 if(!snap.exists()) return;
                 const data = snap.data();
 
                 document.getElementById('t-alt').innerText = (data.altitude || 0) + " m";
-                document.getElementById('t-speed').innerText = (data.speed || 0) + " m/s";
+                const speed = typeof data.speed === "number"? parseFloat(data.speed.toFixed(4)): 0;
+                document.getElementById('t-speed').innerText = speed + " m/s";
                 document.getElementById('t-batt-text').innerText = (data.battery || 0) + "%";
                 document.getElementById('t-batt-fill').style.width = (data.battery || 0) + "%";
                 
@@ -948,9 +947,12 @@
                 }
 
                 const pill = document.getElementById('drone-pill');
-                const lastUpdate = data.last_update?.toDate();
+                const lastUpdate = data.last_update?.toDate?.();
+                let diff = 999;
+                if (lastUpdate instanceof Date) {
+                diff = (Date.now() - lastUpdate.getTime()) / 1000;
+                }
                 const now = new Date();
-                const diff = (now - lastUpdate) / 1000;
 
                 if (diff < 5) {
                     pill.className = "drone-status-pill online";
@@ -1000,6 +1002,22 @@
                     }                    
 
                     if (isTracking) map.panTo(newPos, {animate: true, duration: 0.5});
+                }
+                if (currentActiveMissionId && typeof data.lat === "number" && typeof data.lng === "number"){
+                    const missionSnap = await getDoc(doc(db, "missions", currentActiveMissionId));
+                    const mission = missionSnap.data();
+                
+                    if (mission) {
+                        const target = L.latLng(mission.lat, mission.lng);
+                        const dronePos = L.latLng(data.lat, data.lng);
+                        const distance = map.distance(dronePos, target);
+                
+                        const speed = data.speed || 0;
+                        const eta = speed > 0 ? (distance / speed) : 0;
+                
+                        document.getElementById("t-last-seen").innerText =
+                            `ETA: ${Math.round(eta)}s | ${Math.round(distance)}m`;
+                    }
                 }
             });
 
@@ -1101,6 +1119,19 @@
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
+            };
+
+            const video = document.getElementById("drone-cam-stream");
+            const msg = document.getElementById("vid-msg");
+
+            video.onerror = () => {
+                video.style.display = "none";
+                msg.style.display = "flex";
+            };
+
+            video.onload = () => {
+                video.style.display = "block";
+                msg.style.display = "none";
             };
         }
     </script>
