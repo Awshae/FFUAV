@@ -173,6 +173,45 @@
             .sidebar { border-right: none; border-bottom: 1px solid var(--border); order: 2; }
             .map-wrapper { order: 1; }
         }
+        /* --- VIDEO FEED CARD --- */
+        .video-card {
+            position: absolute; bottom: 20px; right: 20px; z-index: 1000;
+            background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(12px);
+            border: 1px solid var(--border); border-radius: 12px;
+            width: 340px; padding: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+        .video-card.minimized { width: 180px; padding: 10px; }
+        
+        .video-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 10px; font-size: 11px; color: var(--text-muted); 
+            font-weight: 700; letter-spacing: 0.5px;
+        }
+        .video-header button {
+            background: transparent; border: 1px solid var(--border);
+            color: var(--text-muted); padding: 4px 8px; border-radius: 4px;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .video-header button:hover { background: rgba(255,255,255,0.1); color: white; }
+        
+        .live-indicator {
+            display: inline-block; width: 8px; height: 8px; background: var(--fire); 
+            border-radius: 50%; margin-right: 8px; animation: blink 1.5s infinite;
+        }
+        @keyframes blink { 50% { opacity: 0.3; } }
+        
+        .video-frame {
+            width: 100%; height: 240px; background: #000;
+            border-radius: 8px; object-fit: cover; display: block;
+            transition: height 0.3s ease;
+        }
+        .video-card.minimized .video-frame { height: 0; overflow: hidden; }
+        
+        .video-offline-msg {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: var(--text-muted); font-size: 12px; text-align: center; width: 100%;
+        }
     </style>
 </head>
 <body>
@@ -260,6 +299,25 @@
                     <button id="track-btn" onclick="toggleTracking()" style="width:100%; margin-top:12px; padding:8px; background:transparent; border:1px solid var(--accent); color:var(--accent); border-radius:6px; cursor:pointer; font-size:11px; font-weight:700;">
                         <i class="fas fa-crosshairs"></i> LOCK CAMERA
                     </button>
+                </div>
+                <div class="video-card" id="video-card">
+                    <div class="video-header">
+                        <span><span class="live-indicator"></span>SIMULATION FEED</span>
+                        <button onclick="toggleVideo()" title="Toggle Video">
+                            <i class="fas fa-compress-alt" id="video-toggle-icon"></i>
+                        </button>
+                    </div>
+                    
+                    <div style="position:relative; width:100%;">
+                        <img src="http://127.0.0.1:5000/video_feed"
+                            class="video-frame" id="drone-cam-stream" alt="Stream loading...">
+                        
+                        <div id="vid-msg" class="video-offline-msg" style="display:flex; flex-direction:column; align-items:center;">
+                            <i class="fas fa-video-slash" style="font-size:28px; margin-bottom:10px; opacity:0.6;"></i>
+                            <span style="font-weight:600;">SIMULATION OFFLINE</span>
+                            <span style="font-size:10px; color:var(--text-muted); margin-top:4px;">Start Gazebo Flask Server</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
