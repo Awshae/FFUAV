@@ -7,6 +7,10 @@ An end-to-end autonomous emergency response drone system built using **ROS2, Ard
 
 This project enables real-time civilian emergency reporting, autonomous mission dispatch, live tracking, and intelligent onboard processing.
 
+Note: 
+Admin.html for Simulation Connectivity, 
+Dashboard.html for Physical Drone.
+
 ---
 
 ## System Overview
