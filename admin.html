@@ -727,6 +727,32 @@
                 a.click();
                 document.body.removeChild(a);
             };
+            // --- VIDEO CONTROLS ---
+            window.toggleVideo = () => {
+                const card = document.getElementById('video-card');
+                const icon = document.getElementById('video-toggle-icon');
+                card.classList.toggle('minimized');
+                if (card.classList.contains('minimized')) {
+                    icon.className = 'fas fa-expand-alt';
+                } else {
+                    icon.className = 'fas fa-compress-alt';
+                }
+            };
+
+            const video = document.getElementById("drone-cam-stream");
+            const msg = document.getElementById("vid-msg");
+
+            // If the Flask server isn't running, show the "Offline" message
+            video.onerror = () => {
+                video.style.display = "none";
+                msg.style.display = "flex";
+            };
+
+            // If the stream connects, show the video
+            video.onload = () => {
+                video.style.display = "block";
+                msg.style.display = "none";
+            };
         }
     </script>
 </body>
