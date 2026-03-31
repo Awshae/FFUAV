@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="FFUAV Command Center">
-    <title>FFUAV Command Center - Admin</title>
+    <title>FFUAV ADMIN SIM</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
@@ -173,52 +173,13 @@
             .sidebar { border-right: none; border-bottom: 1px solid var(--border); order: 2; }
             .map-wrapper { order: 1; }
         }
-        /* --- VIDEO FEED CARD --- */
-        .video-card {
-            position: absolute; bottom: 20px; right: 20px; z-index: 1000;
-            background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(12px);
-            border: 1px solid var(--border); border-radius: 12px;
-            width: 340px; padding: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-            transition: all 0.3s ease;
-        }
-        .video-card.minimized { width: 180px; padding: 10px; }
-        
-        .video-header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 10px; font-size: 11px; color: var(--text-muted); 
-            font-weight: 700; letter-spacing: 0.5px;
-        }
-        .video-header button {
-            background: transparent; border: 1px solid var(--border);
-            color: var(--text-muted); padding: 4px 8px; border-radius: 4px;
-            cursor: pointer; transition: all 0.2s;
-        }
-        .video-header button:hover { background: rgba(255,255,255,0.1); color: white; }
-        
-        .live-indicator {
-            display: inline-block; width: 8px; height: 8px; background: var(--fire); 
-            border-radius: 50%; margin-right: 8px; animation: blink 1.5s infinite;
-        }
-        @keyframes blink { 50% { opacity: 0.3; } }
-        
-        .video-frame {
-            width: 100%; height: 240px; background: #000;
-            border-radius: 8px; object-fit: cover; display: block;
-            transition: height 0.3s ease;
-        }
-        .video-card.minimized .video-frame { height: 0; overflow: hidden; }
-        
-        .video-offline-msg {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            color: var(--text-muted); font-size: 12px; text-align: center; width: 100%;
-        }
     </style>
 </head>
 <body>
 
     <div id="login-overlay">
         <div class="login-box">
-            <h2 style="margin-bottom:10px;">FFUAV Command</h2>
+            <h2 style="margin-bottom:10px;">FFUAV Command SIM</h2>
             <p style="color:var(--text-muted); font-size:13px; margin-bottom:15px;">Authenticated Personnel Only</p>
             
             <input type="email" id="email" placeholder="Admin Email" autocomplete="email">
@@ -233,7 +194,7 @@
         <header>
             <div class="brand">
                 <i class="fas fa-shield-alt"></i>
-                FFUAV ADMIN
+                FFUAV ADMIN SIM
             </div>
             <button onclick="logout()" style="background:transparent; border:1px solid var(--border); color:var(--text); padding:6px 12px; border-radius:6px; cursor:pointer;">
                 <i class="fas fa-sign-out-alt"></i> LOGOUT
@@ -299,25 +260,6 @@
                     <button id="track-btn" onclick="toggleTracking()" style="width:100%; margin-top:12px; padding:8px; background:transparent; border:1px solid var(--accent); color:var(--accent); border-radius:6px; cursor:pointer; font-size:11px; font-weight:700;">
                         <i class="fas fa-crosshairs"></i> LOCK CAMERA
                     </button>
-                </div>
-                <div class="video-card" id="video-card">
-                    <div class="video-header">
-                        <span><span class="live-indicator"></span>SIMULATION FEED</span>
-                        <button onclick="toggleVideo()" title="Toggle Video">
-                            <i class="fas fa-compress-alt" id="video-toggle-icon"></i>
-                        </button>
-                    </div>
-                    
-                    <div style="position:relative; width:100%;">
-                        <img src="http://127.0.0.1:5000/video_feed"
-                            class="video-frame" id="drone-cam-stream" alt="Stream loading...">
-                        
-                        <div id="vid-msg" class="video-offline-msg" style="display:flex; flex-direction:column; align-items:center;">
-                            <i class="fas fa-video-slash" style="font-size:28px; margin-bottom:10px; opacity:0.6;"></i>
-                            <span style="font-weight:600;">SIMULATION OFFLINE</span>
-                            <span style="font-size:10px; color:var(--text-muted); margin-top:4px;">Start Gazebo Flask Server</span>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -415,8 +357,6 @@
                 iconSize: [50, 50],
                 iconAnchor: [25, 25]
             });
-            
-            
 
             let droneMarker = L.marker([0,0], {icon: droneIcon}); 
             let flightPath = [];
@@ -439,19 +379,16 @@
                 currentActiveMissionId = null;
 
                 if (snap.empty) {
-
                     list.innerHTML = `<div style="padding:20px;text-align:center;color:#64748b">No active missions</div>`;
                 
-                    // 🔴 AUTO FREE SYSTEM IF NO MISSIONS EXIST
+                    // AUTO FREE SYSTEM IF NO MISSIONS EXIST
                     updateDoc(doc(db, "drone_status", "drone_01"), {
                         system_busy: false
                     });
                 
                     currentActiveMissionId = null;
-                
                     return;
                 }
-                
 
                 let isFirst = true;
 
@@ -607,22 +544,18 @@
                     if (isTracking) map.panTo(newPos, {animate: true, duration: 0.5});
                 }
             });
+
             // 4. ACTION FUNCTIONS
             window.updateStatus = async (id, status) => {
-
                 const missionRef = doc(db, "missions", id);
                 const droneStatusRef = doc(db, "drone_status", "drone_01");
             
-                // 1️⃣ Update mission status
+                // Update mission status
                 await updateDoc(missionRef, { status: status });
             
-                // 2️⃣ When mission starts → mark system busy
+                // When mission starts → mark system busy
                 if (status === 'IN_PROGRESS') {
-            
-                    // 🔴 SET BUSY TRUE
-                    await updateDoc(droneStatusRef, {
-                        system_busy: true
-                    });
+                    await updateDoc(droneStatusRef, { system_busy: true });
             
                     const snap = await getDoc(missionRef);
                     const m = snap.data();
@@ -639,16 +572,12 @@
                     hasTakenOff = false;
                 }
             
-                // 3️⃣ When mission ends → free system
-                if (
-                    status === 'ABORT_SIGNAL' ||
-                    status === 'COMPLETED'
-                ) {
-                    await updateDoc(droneStatusRef, {
-                        system_busy: false
-                    });
+                // When mission ends → free system
+                if (status === 'ABORT_SIGNAL' || status === 'COMPLETED') {
+                    await updateDoc(droneStatusRef, { system_busy: false });
                 }
             };
+
             window.toggleTracking = () => {
                 isTracking = !isTracking;
                 updateTrackBtn();
@@ -672,25 +601,18 @@
 
             window.clearHistory = async () => {
                 if(confirm("Delete ALL mission history?")) {
-            
-                    // 1️⃣ Delete all missions
                     const s = await getDocs(collection(db, "missions"));
                     for (const d of s.docs) {
                         await deleteDoc(d.ref);
                     }
             
-                    // 2️⃣ 🔴 CRITICAL FIX: Reset system_busy
-                    await updateDoc(doc(db, "drone_status", "drone_01"), {
-                        system_busy: false
-                    });
+                    await updateDoc(doc(db, "drone_status", "drone_01"), { system_busy: false });
             
-                    // 3️⃣ Stop drone commands
                     await setDoc(doc(db, "drone_commands", "drone_01"), {
                         command: "IDLE",
                         timestamp: serverTimestamp()
                     });
             
-                    // 4️⃣ Reset local tracking
                     currentActiveMissionId = null;
                     hasTakenOff = false;
                     isTracking = false;
@@ -699,11 +621,9 @@
                     polyline.setLatLngs([]);
             
                     updateTrackBtn();
-            
                     alert("All missions deleted. System unlocked.");
                 }
             };
-            
 
             window.exportCSV = async () => {
                 const snap = await getDocs(query(collection(db, "missions"), orderBy("timestamp", "desc")));
@@ -726,32 +646,6 @@
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
-            };
-            // --- VIDEO CONTROLS ---
-            window.toggleVideo = () => {
-                const card = document.getElementById('video-card');
-                const icon = document.getElementById('video-toggle-icon');
-                card.classList.toggle('minimized');
-                if (card.classList.contains('minimized')) {
-                    icon.className = 'fas fa-expand-alt';
-                } else {
-                    icon.className = 'fas fa-compress-alt';
-                }
-            };
-
-            const video = document.getElementById("drone-cam-stream");
-            const msg = document.getElementById("vid-msg");
-
-            // If the Flask server isn't running, show the "Offline" message
-            video.onerror = () => {
-                video.style.display = "none";
-                msg.style.display = "flex";
-            };
-
-            // If the stream connects, show the video
-            video.onload = () => {
-                video.style.display = "block";
-                msg.style.display = "none";
             };
         }
     </script>
