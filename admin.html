@@ -151,14 +151,9 @@
         /* --- SWARM ALERT UI --- */
         .alert-banner {
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1001;
-            background: var(--fire); color: white; padding: 12px 24px; border-radius: 8px;
-            font-weight: bold; font-size: 14px; box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);
-            display: none; animation: pulse 1.5s infinite; letter-spacing: 1px;
-        }
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-            70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+            background: var(--warning); color: #000; padding: 10px 20px; border-radius: 20px;
+            font-weight: bold; font-size: 12px; box-shadow: 0 5px 15px rgba(245, 158, 11, 0.3);
+            display: none; transition: opacity 0.5s ease;
         }
 
         .motor-flag {
@@ -225,7 +220,7 @@
             </div>
 
             <div class="map-wrapper">
-                <div id="alert-banner" class="alert-banner"></div>
+                <div id="alert-banner" class="alert-banner"><i class="fas fa-bell"></i> Target Logged to Sidebar</div>
                 <div id="map"></div>
 
                 <div class="telemetry-card">
@@ -277,7 +272,6 @@
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } 
         from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // --- CONFIGURATION ---
         const ALLOWED_EMAILS = ["admin@ffuav.in", "pilot@gmail.in", "test@gmail.in", "nnm22ri012@nmamit.in"];
         const firebaseConfig = {
             apiKey: "AIzaSyD3j2PpWAjlOQo-8x22EIECrAvbYfwtvng",
@@ -289,7 +283,6 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        // --- AUTH LOGIC ---
         window.login = () => {
             const email = document.getElementById('email').value;
             const pass = document.getElementById('password').value;
@@ -317,7 +310,6 @@
             }
         });
 
-        // --- MAIN SYSTEM ---
         function initSystem() {
             const map = L.map('map').setView([12.9141, 74.8560], 14);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap', maxZoom: 19 }).addTo(map);
@@ -340,9 +332,8 @@
 
             let currentActiveMissionId = null;
             let hasTakenOff = false;
-            let spottedFires = []; // Memory of secondary fires spotted
+            let spottedFires = []; 
 
-            // 2. MISSION LISTENER
             const q = query(collection(db, "missions"), orderBy("timestamp", "desc"));
             onSnapshot(q, snap => {
                 const list = document.getElementById('mission-list');
@@ -368,9 +359,9 @@
                     const div = document.createElement('div');
                     div.className = `mission-item ${isFirst ? 'active' : ''}`;
                     
-                    // Note if it's assigned to drone_02
+                    // Notification Circle for Secondary Fires
                     const assignedTag = d.drone_assigned === 'drone_02' ? 
-                        `<span style="background:var(--warning); color:#fff; padding:2px 6px; border-radius:4px; font-size:9px;">DRONE-02</span>` : '';
+                        `<span style="background:var(--warning); color:#000; padding:2px 8px; border-radius:12px; font-size:9px; font-weight:bold; margin-left:6px;"><i class="fas fa-circle" style="font-size:6px; margin-right:4px; color:#ef4444;"></i>NEW FIRE</span>` : '';
 
                     div.innerHTML = `
                         <div class="m-row">
@@ -385,6 +376,12 @@
                         ${(d.status === 'PENDING' && (!d.drone_assigned || d.drone_assigned === 'drone_01')) ? `
                             <div class="m-actions">
                                 <button class="btn-sm btn-approve" onclick="window.updateStatus('${id}', 'IN_PROGRESS')">DEPLOY DRONE-01</button>
+                                <button class="btn-sm btn-abort" onclick="window.updateStatus('${id}', 'ABORT_SIGNAL')">REJECT</button>
+                            </div>
+                        ` : ''}
+                        ${(d.status === 'PENDING' && d.drone_assigned === 'drone_02') ? `
+                            <div class="m-actions">
+                                <button class="btn-sm btn-approve" style="background:var(--warning);" onclick="window.updateStatus('${id}', 'IN_PROGRESS')">DEPLOY DRONE-02</button>
                                 <button class="btn-sm btn-abort" onclick="window.updateStatus('${id}', 'ABORT_SIGNAL')">REJECT</button>
                             </div>
                         ` : ''}
@@ -418,7 +415,6 @@
                 });
             });
 
-            // 3. DRONE TELEMETRY
             const droneRef = doc(db, "drone_status", "drone_01");
             onSnapshot(droneRef, (snap) => {
                 if(!snap.exists()) return;
@@ -458,13 +454,8 @@
                     document.getElementById('t-last-seen').innerText = Math.floor(diff)+"s ago";
                 }
 
-                // --- SWARM ALERT LOGIC ---
+                // --- NEW SILENT SWARM ALERT LOGIC ---
                 if (data.alert && data.alert !== "") {
-                    const banner = document.getElementById('alert-banner');
-                    banner.innerText = `⚠️ Drone-01 Alert: ${data.alert}`;
-                    banner.style.display = 'block';
-
-                    // Ensure we don't drop 100 markers for the same fire. Check distance.
                     let isNewFire = true;
                     const alertPos = L.latLng(data.lat, data.lng);
                     spottedFires.forEach(pos => {
@@ -473,25 +464,33 @@
 
                     if (isNewFire && data.lat !== 0) {
                         spottedFires.push(alertPos);
+                        
+                        // 1. Put marker silently on map
                         const swarmIcon = L.divIcon({
                             className: 'swarm-fire-marker',
-                            html: `<div style="background:var(--warning); width:18px; height:18px; border-radius:50%; border:2px solid #fff; box-shadow: 0 0 15px var(--warning); animation: pulse 1s infinite;"></div>`,
+                            html: `<div style="background:var(--warning); width:18px; height:18px; border-radius:50%; border:2px solid #fff; box-shadow: 0 0 15px var(--warning);"></div>`,
                             iconSize: [18, 18]
                         });
+                        L.marker(alertPos, {icon: swarmIcon}).addTo(swarmLayer).bindPopup(`<b style="color:var(--warning);">Secondary Fire Detected</b>`);
                         
-                        const marker = L.marker(alertPos, {icon: swarmIcon}).addTo(swarmLayer);
-                        marker.bindPopup(`
-                            <div style="text-align:center; padding:5px;">
-                                <b style="color:var(--warning);">UNASSIGNED FIRE SPOTTED</b><br>
-                                <span style="font-size:10px; color:var(--text-muted);">Detected by Drone-01</span><br><br>
-                                <button onclick="window.dispatchSwarm(${alertPos.lat}, ${alertPos.lng})" style="background:var(--accent); color:white; border:none; padding:8px 12px; border-radius:4px; font-weight:bold; cursor:pointer; width:100%;">
-                                    DISPATCH DRONE-02
-                                </button>
-                            </div>
-                        `).openPopup();
+                        // 2. Add mission silently to Firebase so it pops up in sidebar as "PENDING"
+                        addDoc(collection(db, "missions"), {
+                            label: "Secondary Fire Detected",
+                            lat: data.lat,
+                            lng: data.lng,
+                            phone: "SYS-AUTO",
+                            reporterName: "Drone-01 (Scout)",
+                            severityLevel: "high",
+                            status: "PENDING", 
+                            drone_assigned: "drone_02", 
+                            timestamp: serverTimestamp()
+                        });
+
+                        // 3. Show a brief non-blocking toast
+                        const banner = document.getElementById('alert-banner');
+                        banner.style.display = 'block';
+                        setTimeout(() => { banner.style.display = 'none'; }, 4000);
                     }
-                } else {
-                    document.getElementById('alert-banner').style.display = 'none';
                 }
 
                 if (typeof data.lat === "number" && typeof data.lng === "number" && data.lat !== 0) {
@@ -524,7 +523,6 @@
                 }
             });
 
-            // ACTION FUNCTIONS
             window.updateStatus = async (id, status) => {
                 const missionRef = doc(db, "missions", id);
                 await updateDoc(missionRef, { status: status });
@@ -533,32 +531,17 @@
                     await updateDoc(doc(db, "drone_status", "drone_01"), { system_busy: true });
                     const snap = await getDoc(missionRef);
                     const m = snap.data();
-                    await setDoc(doc(db, "drone_commands", "drone_01"), {
-                        command: "GOTO", mission_id: id, target: { lat: m.lat, lng: m.lng }, timestamp: serverTimestamp()
-                    });
-                    isTracking = true; updateTrackBtn(); hasTakenOff = false;
+                    
+                    // Note: Only send commands to drone 1 for now. If you have a drone 2 bridge, you would target that DB node instead.
+                    if (!m.drone_assigned || m.drone_assigned === "drone_01") {
+                        await setDoc(doc(db, "drone_commands", "drone_01"), {
+                            command: "GOTO", mission_id: id, target: { lat: m.lat, lng: m.lng }, timestamp: serverTimestamp()
+                        });
+                        isTracking = true; updateTrackBtn(); hasTakenOff = false;
+                    }
                 }
                 if (status === 'ABORT_SIGNAL' || status === 'COMPLETED') {
                     await updateDoc(doc(db, "drone_status", "drone_01"), { system_busy: false });
-                }
-            };
-
-            // SWARM DISPATCH FUNCTION
-            window.dispatchSwarm = async (lat, lng) => {
-                if(confirm("Dispatch Drone-02 to neutralize this secondary fire?")) {
-                    await addDoc(collection(db, "missions"), {
-                        label: "Secondary Fire (Swarm Intercept)",
-                        lat: lat,
-                        lng: lng,
-                        phone: "SYS-AUTO",
-                        reporterName: "Drone-01 (Scout)",
-                        severityLevel: "high",
-                        status: "IN_PROGRESS", 
-                        drone_assigned: "drone_02", // Flag for the second drone
-                        timestamp: serverTimestamp()
-                    });
-                    alert("Drone-02 Mission Generated!");
-                    map.closePopup();
                 }
             };
 
