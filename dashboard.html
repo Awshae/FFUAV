@@ -1121,19 +1121,6 @@
                 a.click();
                 document.body.removeChild(a);
             };
-
-            const video = document.getElementById("drone-cam-stream");
-            const msg = document.getElementById("vid-msg");
-
-            video.onerror = () => {
-                video.style.display = "none";
-                msg.style.display = "flex";
-            };
-
-            video.onload = () => {
-                video.style.display = "block";
-                msg.style.display = "none";
-            };
         }
     </script>
 </body>
